@@ -1,0 +1,18 @@
+[
+  {"id":"F01","message":"Tem ração para gato até 100 reais?","expected":{"query":null,"species":"gato","category":"racao","budget":100,"new_search":false,"alternatives":"none"}},
+  {"id":"F02","message":"Recomende brinquedos para cachorro até R$ 50,90","expected":{"query":null,"species":"cao","category":"brinquedo","budget":50.9,"new_search":false,"alternatives":"none"}},
+  {"id":"F03","message":"Tem produto computador gamer?","expected":{"query":"computador gamer","species":null,"category":null,"budget":null,"new_search":false,"alternatives":"none"}},
+  {"id":"F04","message":"Quero SKU002","expected":{"query":"SKU002","species":null,"category":null,"budget":null,"new_search":false,"alternatives":"none"}},
+  {"id":"F05","message":"gato","context":{"awaiting_alternatives":true,"query":"computador"},"expected":{"query":null,"species":"gato","category":null,"budget":null,"new_search":false,"alternatives":"none"}},
+  {"id":"F06","message":"Na verdade é para cachorro","expected":{"query":null,"species":"cao","category":null,"budget":null,"new_search":false,"alternatives":"none"}},
+  {"id":"F07","message":"sim","context":{"awaiting_alternatives":true},"expected":{"query":null,"species":null,"category":null,"budget":null,"new_search":false,"alternatives":"accept"}},
+  {"id":"F08","message":"sim","context":{"awaiting_alternatives":false},"expected":{"query":null,"species":null,"category":null,"budget":null,"new_search":false,"alternatives":"none"}},
+  {"id":"F09","message":"Não quero alternativas","context":{"awaiting_alternatives":true},"expected":{"query":null,"species":null,"category":null,"budget":null,"new_search":false,"alternatives":"reject"}},
+  {"id":"F10","message":"Esqueça o anterior, quero areia para gato","expected":{"query":null,"species":"gato","category":"areia","budget":null,"new_search":true,"alternatives":"none"}},
+  {"id":"F11","message":"Quais produtos vocês têm?","expected":{"query":null,"species":null,"category":null,"budget":null,"new_search":true,"alternatives":"none"}},
+  {"id":"F12","message":"Recomende ração para gato","expected":{"query":null,"species":"gato","category":"racao","budget":null,"new_search":false,"alternatives":"none"}},
+  {"id":"F13","message":"Quero higiene para cão até 80 reais","expected":{"query":null,"species":"cao","category":"higiene","budget":80,"new_search":false,"alternatives":"none"}},
+  {"id":"F14","message":"Mostre acessórios para gato","expected":{"query":null,"species":"gato","category":"acessorio","budget":null,"new_search":false,"alternatives":"none"}},
+  {"id":"F15","message":"até 70 reais","expected":{"query":null,"species":null,"category":null,"budget":70,"new_search":false,"alternatives":"none"}},
+  {"id":"F16","message":"Pode mostrar outras opções","context":{"awaiting_alternatives":true},"expected":{"query":null,"species":null,"category":null,"budget":null,"new_search":false,"alternatives":"accept"}}
+]

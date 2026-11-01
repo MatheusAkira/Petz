@@ -1,0 +1,6 @@
+[project]
+name = "pet-aurora-assistant"
+version = "0.1.0"
+description = "Assistente fictício para desafio de Engenharia de IA"
+requires-python = ">=3.10"
+dependencies = ["sqlite-vec==0.1.9", "langchain-core==1.7.2", "langchain-ollama==1.1.0", "httpx==0.28.1", "deepeval==4.3.2"]

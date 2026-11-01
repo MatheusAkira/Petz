@@ -1,0 +1,28 @@
+# Avaliação — Classificação de intenção
+
+**Execução:** `20261031T231459-302923-deepeval-smoke`  
+**Início:** 2026-10-31T23:14:59.302923+00:00  
+**Estado:** smoke finished
+
+## 1. Testes executados
+
+Não executado. Nenhuma aprovação pode ser inferida.
+
+Procedimento: chamar diretamente a função de produção com mensagem e contexto explícitos; comparar a saída validada com uma referência fixa. Erros e timeouts contam como falhas.
+
+## 2. Avaliação final do grupo
+
+| Métrica | Resultado |
+| --- | ---: |
+| Executados / planejados | 0 / 0 |
+| Acertos exatos | 0 |
+| Acurácia / exact match | Não avaliado |
+| Saídas validadas | Não avaliado |
+| Erros de execução | 0 |
+| Precisão macro | Não avaliado |
+| Recall macro | Não avaliado |
+| F1 macro | Não avaliado |
+
+Escala das taxas: 0–1. Macro: média das classes presentes nas referências executadas; classes ausentes não foram avaliadas. Campos ausentes/null também contam na acurácia de filtros; consulte a métrica de campos informativos. As saídas são as devolvidas pelas funções de produção, após validações e correções; não são o texto bruto do modelo.
+
+Amostra preparada para regressão; revisão independente e calibração humana pendentes.

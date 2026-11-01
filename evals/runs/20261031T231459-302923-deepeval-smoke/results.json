@@ -1,0 +1,211 @@
+{
+  "run_id": "20261031T231459-302923-deepeval-smoke",
+  "started_at": "2026-10-31T23:14:59.302923+00:00",
+  "status": "smoke finished",
+  "mode": "deepeval-smoke-saved-response",
+  "environment": {
+    "python": "3.14.7",
+    "system": "Windows-11-10.0.26200-SP0",
+    "models": {
+      "chat": "qwen2.5:3b",
+      "embeddings": "embeddinggemma"
+    },
+    "timeouts": {
+      "chat": 120.0,
+      "rag": 120.0,
+      "embedding": 120.0
+    },
+    "profiles": {
+      "classification": {
+        "num_predict": 160
+      },
+      "catalog": {
+        "num_predict": 240
+      },
+      "rag": {
+        "num_predict": 650,
+        "num_ctx": 4096
+      },
+      "judge": {
+        "num_predict": 1200,
+        "num_ctx": 4096
+      }
+    },
+    "top_k": 4,
+    "min_score": 0.45,
+    "versions": {
+      "langchain-core": "1.7.2",
+      "langchain-ollama": "1.1.0",
+      "sqlite-vec": "0.1.9"
+    },
+    "source_sha256": "a2531560161d98d16659c21bd3426c64efb8f0c940e1316301e09b36406e3afb",
+    "installed_models": [
+      {
+        "name": "embeddinggemma:latest",
+        "digest": "85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1"
+      },
+      {
+        "name": "qwen2.5:3b",
+        "digest": "357c53fb659c5076de1d65ccb0b397446227b71a42be9d1603d46168015c9e4b"
+      }
+    ]
+  },
+  "planned": {
+    "conversations": 0,
+    "classification": 0,
+    "extraction": 0,
+    "rag": 1
+  },
+  "conversations": [],
+  "rag": [
+    {
+      "id": "pix",
+      "repeat": 1,
+      "question": "Quanto tempo demora para receber o dinheiro de volta se paguei por Pix?",
+      "passed": true,
+      "errors": [],
+      "hits": [
+        {
+          "id": "reembolso:0",
+          "source": "kit/politicas/reembolso.md",
+          "title": "Reembolso",
+          "text": "RN02: O reembolso ocorre sempre no meio de pagamento original. Em compras pagas por Pix, o prazo é de até 5 dias úteis. Em cartão, o estorno ocorre em até 2 faturas. Não é permitido converter um reembolso de cartão em Pix, nem trocar o destinatário do pagamento. O prazo começa após a aprovação do reembolso pelo atendimento. Dias úteis excluem finais de semana e feriados aplicáveis; este protótipo informa o prazo e não calcula o calendário bancário de feriados. A aprovação depende do fluxo de cancelamento ou devolução aplicável. O assistente pode explicar as condições e consultar um pedido, mas não movimenta valores, não aprova pagamentos e não confirma",
+          "score": 0.593522
+        }
+      ],
+      "retrieval": {
+        "source_hit": true,
+        "precision_returned": 1.0,
+        "chunk_recall_at_k": 1.0,
+        "mrr": 1.0,
+        "ndcg_at_k": 1.0,
+        "evidence_coverage": 1.0,
+        "gold_chunk_ids": [
+          "reembolso:0"
+        ]
+      },
+      "generation": {
+        "supported": true,
+        "answer": "Se paguei por Pix, o reembolso ocorre em até 5 dias úteis após a aprovação do reembolso pelo atendimento.",
+        "citations": [
+          {
+            "chunk_id": "reembolso:0",
+            "quote": "O reembolso ocorre sempre no meio de pagamento original. Em compras pagas por Pix, o prazo é de até 5 dias úteis."
+          }
+        ]
+      },
+      "latency_ms": 21990.519,
+      "semantic": {
+        "framework": "deepeval",
+        "model": "qwen2.5:3b",
+        "same_as_generator": true,
+        "rubric_version": "deepeval-rag-1",
+        "evaluated_at": "2026-10-31T23:14:59.322683+00:00",
+        "framework_version": "4.3.2",
+        "status": "avaliado",
+        "scores": {
+          "faithfulness": 0.0,
+          "correctness": 0.5,
+          "completeness": 0.5,
+          "relevance": 1.0,
+          "usefulness": 0.5
+        },
+        "reasons": {
+          "faithfulness": "The score is 0.00 because there are no contradictions, indicating the `actual output` aligns perfectly with the `retrieval context`.",
+          "correctness": "A resposta não menciona o prazo de 5 dias úteis após a aprovação do reembolso, que é um ponto importante. Além disso, a resposta não menciona o atendimento, que é mencionado na referência. Esses são pontos de contradição.",
+          "completeness": "The response does not mention the requirement for the reembolso to be approved by the customer service, which is a key detail from the expected output. This omission results in a lower score.",
+          "relevance": "The score is 1.00 because there are no irrelevant statements in the actual output regarding the input question about the refund time for a Pix payment.",
+          "usefulness": "The actual output does not mention the term 'reembolso' (refund) and does not clearly state that the 5-day period starts after the approval of the refund. The expected output provides more clarity and specificity about the process."
+        },
+        "metric_results": {
+          "faithfulness": {
+            "status": "avaliado",
+            "metric": "FaithfulnessMetric",
+            "score": 0.0,
+            "reason": "The score is 0.00 because there are no contradictions, indicating the `actual output` aligns perfectly with the `retrieval context`.",
+            "latency_ms": 64082.951
+          },
+          "correctness": {
+            "status": "avaliado",
+            "metric": "GEval",
+            "score": 0.5,
+            "reason": "A resposta não menciona o prazo de 5 dias úteis após a aprovação do reembolso, que é um ponto importante. Além disso, a resposta não menciona o atendimento, que é mencionado na referência. Esses são pontos de contradição.",
+            "latency_ms": 15857.314
+          },
+          "completeness": {
+            "status": "avaliado",
+            "metric": "GEval",
+            "score": 0.5,
+            "reason": "The response does not mention the requirement for the reembolso to be approved by the customer service, which is a key detail from the expected output. This omission results in a lower score.",
+            "latency_ms": 8576.539
+          },
+          "relevance": {
+            "status": "avaliado",
+            "metric": "AnswerRelevancyMetric",
+            "score": 1.0,
+            "reason": "The score is 1.00 because there are no irrelevant statements in the actual output regarding the input question about the refund time for a Pix payment.",
+            "latency_ms": 33707.935
+          },
+          "usefulness": {
+            "status": "avaliado",
+            "metric": "GEval",
+            "score": 0.5,
+            "reason": "The actual output does not mention the term 'reembolso' (refund) and does not clearly state that the 5-day period starts after the approval of the refund. The expected output provides more clarity and specificity about the process.",
+            "latency_ms": 9971.613
+          }
+        },
+        "metric_errors": {},
+        "reason": "",
+        "reference_facts": [
+          "Em compras pagas por Pix, o prazo é de até 5 dias úteis.",
+          "O prazo começa após a aprovação do reembolso pelo atendimento."
+        ],
+        "expected_output": "Em compras pagas por Pix, o prazo é de até 5 dias úteis.\nO prazo começa após a aprovação do reembolso pelo atendimento.",
+        "reference_sha256": "d520d31f0e76c3fab1f319e20ae5489bcf9d89007d27f5560923f48d7570ca9a",
+        "latency_ms": 133316.888
+      }
+    }
+  ],
+  "classification": [],
+  "extraction": [],
+  "semantic": {
+    "model": "qwen2.5:3b",
+    "same_as_generator": true,
+    "timeout": 180.0,
+    "rubric_version": "deepeval-rag-1",
+    "stage": "Geração RAG",
+    "human_calibrated": false,
+    "framework": "deepeval",
+    "framework_version": "4.3.2",
+    "threshold": null,
+    "profile": {
+      "num_predict": 1200,
+      "num_ctx": 4096
+    },
+    "temperature": 0,
+    "evaluation_code_sha256": "b07c9edd4c30553c9a83bfb4032a8b42315b2a4b21dbb959ca97c8845ae13bd4",
+    "status": "concluido"
+  },
+  "group_reports": {
+    "classification": "RELATORIO_2026-10-31_20-14-59-317657_CLASSIFICATION.md",
+    "extraction": "RELATORIO_2026-10-31_20-14-59-317657_EXTRACTION.md",
+    "rag": "RELATORIO_2026-10-31_20-14-59-317657_RAG.md"
+  },
+  "kit": {
+    "status": "passou",
+    "summary": "Contagens, referências e coerência do kit válidas."
+  },
+  "unit": {
+    "status": "passou",
+    "summary": "76 testes; 0 falhas; 0 erros; 0 ignorados.",
+    "count": 76,
+    "failures": 0,
+    "errors": 0,
+    "output": "test_alternatives_require_consent_and_preserve_species_budget (test_catalog.ProductTests.test_alternatives_require_consent_and_preserve_species_budget) ... ok\ntest_catalog_overview_recovers_from_previous_extraction_error (test_catalog.ProductTests.test_catalog_overview_recovers_from_previous_extraction_error) ... ok\ntest_catalog_overview_resets_missing_theme_and_lists_real_stock (test_catalog.ProductTests.test_catalog_overview_resets_missing_theme_and_lists_real_stock) ... ok\ntest_exact_sku_and_out_of_stock_are_not_replaced (test_catalog.ProductTests.test_exact_sku_and_out_of_stock_are_not_replaced) ... ok\ntest_explicit_new_search_can_replace_old_theme (test_catalog.ProductTests.test_explicit_new_search_can_replace_old_theme) ... ok\ntest_extraction_timeout_has_specific_message (test_catalog.ProductTests.test_extraction_timeout_has_specific_message) ... ok\ntest_failed_name_extraction_cannot_turn_species_into_generic_recommendations (test_catalog.ProductTests.test_failed_name_extraction_cannot_turn_species_into_generic_recommendations) ... ok\ntest_food_species_budget_extraction_and_configured_timeout (test_catalog.ProductTests.test_food_species_budget_extraction_and_configured_timeout) ... ok\ntest_generic_recommendation_keeps_category_on_species_correction (test_catalog.ProductTests.test_generic_recommendation_keeps_category_on_species_correction) ... ok\ntest_invalid_or_failed_extraction_does_not_change_context (test_catalog.ProductTests.test_invalid_or_failed_extraction_does_not_change_context) ... ok\ntest_missing_theme_survives_species_and_never_returns_unrelated_skus (test_catalog.ProductTests.test_missing_theme_survives_species_and_never_returns_unrelated_skus) ... ok\ntest_name_spacing_does_not_count_as_invented_name (test_catalog.ProductTests.test_name_spacing_does_not_count_as_invented_name) ... ok\ntest_rejecting_alternatives_keeps_original_query (test_catalog.ProductTests.test_rejecting_alternatives_keeps_original_query) ... ok\ntest_shared_timeout_default_and_invalid_values (test_catalog.ProductTests.test_shared_timeout_default_and_invalid_values) ... ok\ntest_species_alone_is_not_a_specific_product_name (test_catalog.ProductTests.test_species_alone_is_not_a_specific_product_name) ... ok\ntest_species_correction_cannot_clear_theme_even_if_model_marks_consent (test_catalog.ProductTests.test_species_correction_cannot_clear_theme_even_if_model_marks_consent) ... ok\ntest_classification_errors_reduce_macro_recall_and_accuracy (test_components.ComponentEvaluationTests.test_classification_errors_reduce_macro_recall_and_accuracy) ... ok\ntest_datasets_cover_intent_enum_and_all_filter_fields (test_components.ComponentEvaluationTests.test_datasets_cover_intent_enum_and_all_filter_fields) ... ok\ntest_direct_call_preserves_context_expected_and_actual (test_components.ComponentEvaluationTests.test_direct_call_preserves_context_expected_and_actual) ... ok\ntest_extraction_metrics_distinguish_whole_object_and_fields (test_components.ComponentEvaluationTests.test_extraction_metrics_distinguish_whole_object_and_fields) ... ok\ntest_group_documents_separate_procedure_details_and_final_metrics (test_components.ComponentEvaluationTests.test_group_documents_separate_procedure_details_and_final_metrics) ... ok\ntest_abstention_clears_pending_but_does_not_weaken_security_or_defect_flow (test_contracts.Contracts.test_abstention_clears_pending_but_does_not_weaken_security_or_defect_flow) ... ok\ntest_cancel_intent_survives_number_classified_as_status (test_contracts.Contracts.test_cancel_intent_survives_number_classified_as_status) ... ok\ntest_empty_tool_arguments_retry_with_json_schema (test_contracts.Contracts.test_empty_tool_arguments_retry_with_json_schema) ... ok\ntest_generic_policy_without_order (test_contracts.Contracts.test_generic_policy_without_order) ... ok\ntest_identity_interrupts_pending_order_without_retrieval (test_contracts.Contracts.test_identity_interrupts_pending_order_without_retrieval) ... ok\ntest_identity_is_allowed_by_model_schema (test_contracts.Contracts.test_identity_is_allowed_by_model_schema) ... ok\ntest_llm_overrides_words_in_message_every_turn (test_contracts.Contracts.test_llm_overrides_words_in_message_every_turn) ... ok\ntest_missing_tool_call_retries_with_json_schema (test_contracts.Contracts.test_missing_tool_call_retries_with_json_schema) ... ok\ntest_model_tool_schema_rejects_identity_and_unknown_functions (test_contracts.Contracts.test_model_tool_schema_rejects_identity_and_unknown_functions) ... ok\ntest_no_personal_data_in_logs (test_contracts.Contracts.test_no_personal_data_in_logs) ... ok\ntest_noncanonical_intent_retries_with_schema (test_contracts.Contracts.test_noncanonical_intent_retries_with_schema) ... ok\ntest_ollama_failure_has_no_keyword_fallback (test_contracts.Contracts.test_ollama_failure_has_no_keyword_fallback) ... ok\ntest_open_food_through_conversation (test_contracts.Contracts.test_open_food_through_conversation) ... ok\ntest_other_order_clears_previous_number (test_contracts.Contracts.test_other_order_clears_previous_number) ... ok\ntest_return_boundaries_and_open_packaging (test_contracts.Contracts.test_return_boundaries_and_open_packaging) ... ok\ntest_return_intent_survives_number_classified_as_status (test_contracts.Contracts.test_return_intent_survives_number_classified_as_status) ... ok\ntest_shipping_all_regions (test_contracts.Contracts.test_shipping_all_regions) ... ok\ntest_tool_contract_and_minimization (test_contracts.Contracts.test_tool_contract_and_minimization) ... ok\ntest_topic_change_does_not_resume_old_return_with_number (test_contracts.Contracts.test_topic_change_does_not_resume_old_return_with_number) ... ok\ntest_unsupported_topics_after_return_abstain_without_tools (test_contracts.Contracts.test_unsupported_topics_after_return_abstain_without_tools) ... ok\ntest_gold_passages_exist_in_current_chunks (test_evaluation_suite.EvaluationSuiteTests.test_gold_passages_exist_in_current_chunks) ... ok\ntest_group_reservation_does_not_create_main_report (test_evaluation_suite.EvaluationSuiteTests.test_group_reservation_does_not_create_main_report) ... ok\ntest_markdown_marks_unexecuted_online_steps (test_evaluation_suite.EvaluationSuiteTests.test_markdown_marks_unexecuted_online_steps) ... ok\ntest_ranking_metrics_penalize_wrong_first_result_and_missing_evidence (test_evaluation_suite.EvaluationSuiteTests.test_ranking_metrics_penalize_wrong_first_result_and_missing_evidence) ... ok\ntest_report_names_preserve_existing_files_and_are_unique (test_evaluation_suite.EvaluationSuiteTests.test_report_names_preserve_existing_files_and_are_unique) ... ok\ntest_results_are_at_end_with_individual_tests_and_readable_rag (test_evaluation_suite.EvaluationSuiteTests.test_results_are_at_end_with_individual_tests_and_readable_rag) ... ok\ntest_valid_quote_does_not_automatically_pass_factual_checks (test_evaluation_suite.EvaluationSuiteTests.test_valid_quote_does_not_automatically_pass_factual_checks) ... ok\ntest_embeddings_and_tags_use_same_server_and_embedding_timeout (test_ollama_client.OllamaClientTests.test_embeddings_and_tags_use_same_server_and_embedding_timeout) ... ok\ntest_http_chat_preserves_tools_and_structured_output (test_ollama_client.OllamaClientTests.test_http_chat_preserves_tools_and_structured_output) ... ok\ntest_judge_has_separate_model_and_timeout (test_ollama_client.OllamaClientTests.test_judge_has_separate_model_and_timeout) ... ok\ntest_langchain_profiles_share_models_url_and_settings (test_ollama_client.OllamaClientTests.test_langchain_profiles_share_models_url_and_settings) ... ok\ntest_new_clients_read_new_configuration_without_import_reload (test_ollama_client.OllamaClientTests.test_new_clients_read_new_configuration_without_import_reload) ... ok\ntest_chain_rejects_invented_citation (test_rag.GenerationTests.test_chain_rejects_invented_citation) ... ok\ntest_citations_must_have_known_chunk_and_verbatim_quote (test_rag.GenerationTests.test_citations_must_have_known_chunk_and_verbatim_quote) ... ok\ntest_empty_retrieval_abstains_without_generation (test_rag.GenerationTests.test_empty_retrieval_abstains_without_generation) ... ok\ntest_generation_receives_retrieved_text (test_rag.GenerationTests.test_generation_receives_retrieved_text) ... ok\ntest_langchain_model_uses_json_schema_and_timeout (test_rag.GenerationTests.test_langchain_model_uses_json_schema_and_timeout) ... ok\ntest_malformed_embeddings_are_rejected (test_rag.GenerationTests.test_malformed_embeddings_are_rejected) ... ok\ntest_missing_index_is_visible_and_does_not_crash_cli (test_rag.GenerationTests.test_missing_index_is_visible_and_does_not_crash_cli) ... ok\ntest_unsupported_generation_uses_same_abstention_as_unknown_intent (test_rag.GenerationTests.test_unsupported_generation_uses_same_abstention_as_unknown_intent) ... ok\ntest_actual_sqlite_vec_persistence_ranking_and_idempotency (test_rag.VectorStoreTests.test_actual_sqlite_vec_persistence_ranking_and_idempotency) ... ok\ntest_chunk_size_overlap_and_last_words (test_rag.VectorStoreTests.test_chunk_size_overlap_and_last_words) ... ok\ntest_failed_embedding_keeps_old_index (test_rag.VectorStoreTests.test_failed_embedding_keeps_old_index) ... ok\ntest_langchain_retriever_preserves_text_sources_and_scores (test_rag.VectorStoreTests.test_langchain_retriever_preserves_text_sources_and_scores) ... ok\ntest_missing_index_and_invalid_dimensions (test_rag.VectorStoreTests.test_missing_index_and_invalid_dimensions) ... ok\ntest_modified_deleted_documents_and_model_invalidate_index (test_rag.VectorStoreTests.test_modified_deleted_documents_and_model_invalidate_index) ... ok\ntest_failed_judge_has_no_fabricated_scores (test_semantic.SemanticTests.test_failed_judge_has_no_fabricated_scores) ... ok\ntest_judge_cannot_invent_supporting_quote (test_semantic.SemanticTests.test_judge_cannot_invent_supporting_quote) ... ok\ntest_judge_receives_reference_and_context_and_does_not_change_original_result (test_semantic.SemanticTests.test_judge_receives_reference_and_context_and_does_not_change_original_result) ... ok\ntest_missing_dimension_or_invalid_score_is_not_silently_accepted (test_semantic.SemanticTests.test_missing_dimension_or_invalid_score_is_not_silently_accepted) ... ok\ntest_missing_generation_skips_judge (test_semantic.SemanticTests.test_missing_generation_skips_judge) ... ok\ntest_pure_abstention_can_have_nonapplicable_faithfulness (test_semantic.SemanticTests.test_pure_abstention_can_have_nonapplicable_faithfulness) ... ok\ntest_scores_are_normalized_and_all_dimensions_present (test_semantic.SemanticTests.test_scores_are_normalized_and_all_dimensions_present) ... ok\ntest_summary_has_stage_mapping_and_ignores_nonapplicable_scores (test_semantic.SemanticTests.test_summary_has_stage_mapping_and_ignores_nonapplicable_scores) ... ok\ntest_template_abstention_has_no_faithfulness_denominator (test_semantic.SemanticTests.test_template_abstention_has_no_faithfulness_denominator) ... ok\n\n----------------------------------------------------------------------\nRan 76 tests in 0.257s\n\nOK\n"
+  },
+  "preflight": {
+    "status": "passou",
+    "summary": "Ollama, modelos e índice disponíveis."
+  },
+  "source_run_id": "20261031T223524-894000"
+}

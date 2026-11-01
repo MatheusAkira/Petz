@@ -1,0 +1,8 @@
+[
+  {"id":"R01","area":"regressao_produto","turns":["Tem produto computador gamer?","gato"],"expect":{"route":"produto","contains":["Não encontrei"],"skus_empty":true}},
+  {"id":"R02","area":"regressao_catalogo","turns":["Tem produto computador gamer?","Quais produtos vocês têm?"],"expect":{"route":"catalogo","skus_nonempty":true}},
+  {"id":"R03","area":"regressao_devolucao","turns":["Gostaria de fazer uma devolução","1004","Arrependimento"],"expect_turns":{"0":{"route":"pedir_numero"},"1":{"route":"pedir_motivo"}},"expect":{"route":"trocas","eligible":true}},
+  {"id":"R04","area":"regressao_identidade","turns":["E o outro pedido?","Quem é você?"],"expect":{"route":"identidade","contains":["Pet Aurora"]}},
+  {"id":"R05","area":"regressao_abstencao","turns":["Devolver pedido 1004 por arrependimento","Qual a garantia dos produtos que você tem?"],"expect":{"route":"abstencao","contains":["Não sei"]}},
+  {"id":"R06","area":"regressao_orcamento","turns":["Tem ração para gato até 100 reais?"],"expect":{"route":"produto","species":"gato","category":"racao","budget":100,"in_stock":true}}
+]

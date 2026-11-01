@@ -1,0 +1,5 @@
+sqlite-vec==0.1.9
+langchain-core==1.7.2
+langchain-ollama==1.1.0
+httpx==0.28.1
+deepeval==4.3.2

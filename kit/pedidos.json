@@ -1,0 +1,142 @@
+[
+  {
+    "numero": "1001",
+    "cliente_id": "cliente-1",
+    "status": "Pago",
+    "regiao": "Sudeste",
+    "pagamento": "Pix",
+    "entregue_em": null,
+    "itens": [
+      {
+        "sku": "SKU001",
+        "quantidade": 1
+      }
+    ]
+  },
+  {
+    "numero": "1002",
+    "cliente_id": "cliente-2",
+    "status": "Em separação",
+    "regiao": "Sul",
+    "pagamento": "Cartão",
+    "entregue_em": null,
+    "itens": [
+      {
+        "sku": "SKU002",
+        "quantidade": 1
+      }
+    ]
+  },
+  {
+    "numero": "1003",
+    "cliente_id": "cliente-3",
+    "status": "Enviado",
+    "regiao": "Nordeste",
+    "pagamento": "Pix",
+    "entregue_em": null,
+    "itens": [
+      {
+        "sku": "SKU003",
+        "quantidade": 1
+      }
+    ]
+  },
+  {
+    "numero": "1004",
+    "cliente_id": "cliente-1",
+    "status": "Entregue",
+    "regiao": "Norte",
+    "pagamento": "Cartão",
+    "entregue_em": "2026-10-25",
+    "itens": [
+      {
+        "sku": "SKU004",
+        "quantidade": 1
+      }
+    ]
+  },
+  {
+    "numero": "1005",
+    "cliente_id": "cliente-2",
+    "status": "Entregue",
+    "regiao": "Centro-Oeste",
+    "pagamento": "Pix",
+    "entregue_em": "2026-10-10",
+    "itens": [
+      {
+        "sku": "SKU005",
+        "quantidade": 1
+      }
+    ]
+  },
+  {
+    "numero": "1006",
+    "cliente_id": "cliente-3",
+    "status": "Cancelado",
+    "regiao": "Sudeste",
+    "pagamento": "Cartão",
+    "entregue_em": null,
+    "itens": [
+      {
+        "sku": "SKU006",
+        "quantidade": 1
+      }
+    ]
+  },
+  {
+    "numero": "1007",
+    "cliente_id": "cliente-1",
+    "status": "Pago",
+    "regiao": "Sul",
+    "pagamento": "Pix",
+    "entregue_em": null,
+    "itens": [
+      {
+        "sku": "SKU007",
+        "quantidade": 1
+      }
+    ]
+  },
+  {
+    "numero": "1008",
+    "cliente_id": "cliente-2",
+    "status": "Enviado",
+    "regiao": "Nordeste",
+    "pagamento": "Cartão",
+    "entregue_em": null,
+    "itens": [
+      {
+        "sku": "SKU008",
+        "quantidade": 1
+      }
+    ]
+  },
+  {
+    "numero": "1009",
+    "cliente_id": "cliente-3",
+    "status": "Entregue",
+    "regiao": "Norte",
+    "pagamento": "Pix",
+    "entregue_em": "2026-09-20",
+    "itens": [
+      {
+        "sku": "SKU009",
+        "quantidade": 1
+      }
+    ]
+  },
+  {
+    "numero": "1010",
+    "cliente_id": "cliente-1",
+    "status": "Em separação",
+    "regiao": "Centro-Oeste",
+    "pagamento": "Cartão",
+    "entregue_em": null,
+    "itens": [
+      {
+        "sku": "SKU010",
+        "quantidade": 1
+      }
+    ]
+  }
+]

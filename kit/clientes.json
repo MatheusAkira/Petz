@@ -1,0 +1,17 @@
+[
+  {
+    "id": "cliente-1",
+    "email": "cliente1@example.invalid",
+    "documento": "CPF-FICTICIO-001"
+  },
+  {
+    "id": "cliente-2",
+    "email": "cliente2@example.invalid",
+    "documento": "CPF-FICTICIO-002"
+  },
+  {
+    "id": "cliente-3",
+    "email": "cliente3@example.invalid",
+    "documento": "CPF-FICTICIO-003"
+  }
+]
