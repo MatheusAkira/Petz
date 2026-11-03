@@ -1,18 +1,69 @@
-# Pet Aurora — RAG semântico local
+﻿# Pet Aurora — Assistente de atendimento com IA
 
-Assistente fictício com **RAG generativo usando LangChain**, embeddings locais e banco vetorial persistente. A classificação do assunto continua sendo feita exclusivamente pela LLM. Não há classificação por palavras-chave.
+Assistente para um e-commerce pet fictício, com execução local via Ollama. Combina classificação de intenção por LLM, respostas fundamentadas em políticas com RAG e regras de negócio determinísticas para pedidos, devoluções, cancelamento e frete.
 
-## Onde entra o LangChain
+## Visão geral
 
-Usamos os pacotes oficiais `langchain-core` e `langchain-ollama`, com versões fixadas em `requirements.txt`. Não é necessário instalar o pacote agregador `langchain`: as integrações modernas são distribuídas em pacotes separados.
+- **Atendimento:** consulta de pedidos, busca de produtos, dúvidas sobre políticas e orientação para atendimento humano.
+- **Base de conhecimento:** oito políticas, 50 produtos e dez pedidos fictícios de três clientes.
+- **Arquitetura:** Python, LangChain, Qwen 2.5 3B, EmbeddingGemma e SQLite/sqlite-vec.
+- **Controles:** autorização por sessão, validação de saídas estruturadas e citações, e abstenção quando falta evidência.
+- **Avaliação:** testes de engenharia, cenários de atendimento, classificação, extração e RAG, com checks determinísticos e juiz LLM.
+
+Todos os dados são sintéticos. O projeto demonstra os fluxos de atendimento; autenticação de produção e transações reais não estão implementadas.
+
+## Navegação
+
+- [Instalação e execução](#instalação-e-execução)
+- [Arquitetura e componentes](#arquitetura-e-componentes)
+- [Avaliação e resultados](#avaliação-e-resultados)
+- [Decisões técnicas e desempenho](#decisões-técnicas-e-desempenho)
+- [Próximos passos](#próximos-passos)
+
+## Instalação e execução
+
+Na raiz do projeto, em PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+ollama pull qwen2.5:3b
+ollama pull embeddinggemma
+.\.venv\Scripts\python.exe -m petz.index
+.\.venv\Scripts\python.exe -m petz
+```
+
+Mantenha o [Ollama](https://ollama.com/download/windows) em execução. O modelo de embeddings é um download adicional de aproximadamente 622 MB e requer Ollama 0.11.10 ou posterior, segundo a [página do modelo](https://ollama.com/library/embeddinggemma). Não é preciso ativar o ambiente virtual: os comandos usam diretamente seu Python. Requer Python 3.10+ com suporte ao carregamento de extensões SQLite.
+
+Após preparar o ambiente, inicie uma nova conversa com:
+
+```powershell
+.\.venv\Scripts\python.exe -m petz
+```
+
+Exemplos de perguntas:
+
+```text
+Quanto tempo demora para receber o dinheiro de volta se paguei por Pix?
+Como funciona a assinatura recorrente?
+Por quantos dias posso buscar meu pacote na loja?
+Onde está meu pedido?
+1001
+```
+
+Digite `sair` para encerrar. A data é obtida do computador, com prioridade para `PETZ_TODAY` se definida. `--date 2026-10-29` reproduz os prazos dos pedidos fictícios. `--customer cliente-2` seleciona a identidade de demonstração; não é autenticação de produção. `--backend ollama` continua aceito, sendo o único backend disponível.
+
+## Arquitetura e componentes
+
+Usamos os pacotes oficiais `langchain-core` e `langchain-ollama`, com versões fixadas em `requirements.txt`. A recuperação e a geração usam componentes LangChain; classificação, autorização e regras mantêm contratos próprios.
 
 - `petz/retrieval.py`: `PolicyRetriever` implementa `BaseRetriever` e retorna objetos `Document` com texto, fonte, identificador e escore. O embedder implementa a interface `Embeddings`; sua chamada HTTP foi mantida para preservar `truncate=false`, os prefixos e a identificação do modelo. O armazenamento continua sendo nosso SQLite/sqlite-vec.
 - `petz/assistant.py`: usa `as_langchain_retriever().invoke(...)` para recuperar os documentos da pergunta.
 - `petz/rag.py`: compõe `ChatPromptTemplate | ChatOllama.with_structured_output(...) | RunnableLambda`. Essa cadeia LCEL prepara o prompt, gera JSON com o modelo e aplica a validação de citações existente. `generate_answer` executa a cadeia com `.invoke(...)`.
 
-A classificação em `llm.py` usa o cliente HTTP centralizado, com o contrato de tool calling já testado; ela não foi migrada para LangChain. As regras de negócio e a autorização permanecem fora da geração. Não há agente autônomo nem LangGraph neste projeto.
+A classificação em `llm.py` usa o cliente HTTP centralizado, com o contrato de tool calling já testado; a classificação é independente da cadeia RAG. As regras de negócio e a autorização permanecem fora da geração. Não há agente autônomo nem LangGraph neste projeto.
 
-## Configuração e clientes centralizados
+### Modelos e integração com Ollama
 
 Os módulos usam o Ollama para estas tarefas. Os modelos indicados são os padrões, configuráveis por variáveis de ambiente:
 
@@ -31,53 +82,9 @@ Os módulos usam o Ollama para estas tarefas. Os modelos indicados são os padr�
 - `OllamaClient.chat(...)` para classificação e sua segunda tentativa estruturada;
 - `OllamaClient.tags()` e `OllamaClient.embed(...)` para identificação do embedder e geração de vetores com `truncate=false`.
 
-Os perfis de tarefa também ficam nesse módulo: classificação usa até 160 tokens de saída, extração até 240 e geração RAG até 650 com contexto de 4096. Os prompts e a validação dos resultados permanecem nos módulos de cada tarefa. A centralização não junta todas as etapas em uma única chamada nem muda o número de chamadas por conversa. Não há cache global de clientes ou necessidade de reindexar por essa refatoração.
+Os perfis de tarefa também ficam nesse módulo: classificação usa até 160 tokens de saída, extração até 240 e geração RAG até 650 com contexto de 4096. Os prompts e a validação dos resultados permanecem nos módulos de cada tarefa. Cada etapa faz suas próprias chamadas, com prompts e contratos específicos.
 
-Para atualizar um ambiente já criado:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m petz
-```
-
-A integração não muda o chunking, os embeddings nem o formato do banco, então não exige reindexação por si só. As dependências LangChain estão instaladas neste workspace. LangSmith pode aparecer como dependência transitiva, mas não configuramos conta, chave ou envio de traces para um serviço externo. Os logs locais continuam sendo a observabilidade padrão.
-
-Os resultados de testes e avaliações ficam exclusivamente em `evals/runs/<execução>/`, com análise em `evals/docs/ANALISE.md`. Os cenários ficam em `evals/datasets/`.
-
-## Executar
-
-Na raiz do projeto, em PowerShell:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-ollama pull qwen2.5:3b
-ollama pull embeddinggemma
-.\.venv\Scripts\python.exe -m petz.index
-.\.venv\Scripts\python.exe -m petz
-```
-
-Mantenha o [Ollama](https://ollama.com/download/windows) em execução. O modelo de embeddings é um download adicional de aproximadamente 622 MB e requer Ollama 0.11.10 ou posterior, segundo a [página do modelo](https://ollama.com/library/embeddinggemma). Não é preciso ativar o ambiente virtual: os comandos usam diretamente seu Python. Requer Python 3.10+ com suporte ao carregamento de extensões SQLite.
-
-**Neste workspace, o ambiente, os dois modelos e o índice já foram preparados.** Para conversar agora:
-
-```powershell
-.\.venv\Scripts\python.exe -m petz
-```
-
-Exemplos de perguntas:
-
-```text
-Quanto tempo demora para receber o dinheiro de volta se paguei por Pix?
-Como funciona a assinatura recorrente?
-Por quantos dias posso buscar meu pacote na loja?
-Onde está meu pedido?
-1001
-```
-
-Digite `sair` para encerrar. A data é obtida do computador, com prioridade para `PETZ_TODAY` se definida. `--date 2026-10-29` reproduz os prazos dos pedidos fictícios. `--customer cliente-2` seleciona a identidade de demonstração; não é autenticação de produção. `--backend ollama` continua aceito, sendo o único backend disponível.
-
-## Fluxo de RAG
+### Fluxo de atendimento e recuperação
 
 ```mermaid
 flowchart TD
@@ -100,7 +107,7 @@ O índice contém somente políticas públicas fictícias. Pedidos, identidade d
 
 Ao pedir um número de pedido, a aplicação registra explicitamente a operação pendente (consulta, devolução ou cancelamento). Uma resposta composta apenas pelos quatro dígitos preenche esse campo e retoma a operação, mesmo se a LLM classificar o número como consulta de status. Isso é continuidade de um fluxo já classificado, não classificação do assunto por palavras-chave. Uma nova pergunta sobre outro assunto encerra a espera pelo número. Rótulos de intenção fora do enum retornados pela ferramenta correta têm uma segunda tentativa JSON limitada; ferramentas desconhecidas e argumentos extras continuam recusados.
 
-## Arquivos principais
+### Organização do projeto
 
 | Arquivo | Responsabilidade |
 | --- | --- |
@@ -117,7 +124,7 @@ Ao pedir um número de pedido, a aplicação registra explicitamente a operaçã
 | `evals/suite.py` | Execução unificada dos testes de engenharia, atendimento e RAG |
 | `evals/checks.py` | Verificações determinísticas das respostas de atendimento |
 
-## Embeddings e banco vetorial
+### Busca de produtos e indexação
 
 Perguntas gerais como “quais produtos vocês têm?” usam a intenção `catalogo`: mostram categorias e uma amostra de até cinco itens reais com estoque. Essa consulta limpa a busca anterior por nome/tema e não chama o extrator de nomes. O usuário pode então informar uma categoria ou espécie. O extrator de filtros recebe apenas a mensagem atual e o indicador de alternativas pendentes; o nome anterior é preservado pela aplicação, sem ser apresentado ao modelo como nome a extrair novamente.
 
@@ -139,7 +146,7 @@ Depois de editar as políticas:
 
 Não é preciso reindexar para cada pergunta. Sem índice ou com versão desatualizada, o assistente informa o comando necessário.
 
-## Geração e fontes
+### Geração, fontes e limites de segurança
 
 Perguntas sobre garantia, garantia estendida, fidelidade e outros temas sem política disponível recebem a resposta de abstenção: “Não sei responder com a base disponível…”. São dúvidas comerciais legítimas, não tentativas de ataque. Perguntas sobre devolução por defeito continuam cobertas pela RN01; o assistente não confunde essa regra com uma garantia não documentada. Após concluir a análise de devolução, a espera por campos é encerrada para não contaminar o assunto seguinte.
 
@@ -149,7 +156,7 @@ O Qwen recebe pergunta e chunks, com instrução de responder exclusivamente a p
 
 **Validar uma citação não prova que toda afirmação está correta.** O modelo ainda pode omitir exceções ou interpretar mal os trechos. A instrução trata documentos como dados não confiáveis, mas não oferece garantia universal contra prompt injection. Casos de saúde ou escalonamento continuam dependentes da classificação pela LLM. Pedidos e cálculos sensíveis mantêm autorização e regras em código.
 
-## Configuração
+## Configuração do ambiente
 
 Variáveis opcionais, via ambiente; o projeto não carrega `.env` automaticamente:
 
@@ -177,130 +184,71 @@ $env:OLLAMA_TIMEOUT = '120'
 
 O prompt de `catalog.py` descreve os seis campos do schema, seus valores padrão, limites de preço, preservação de filtros e consentimento, com exemplos completos. null não apaga filtros anteriores; a remoção isolada de orçamento ainda não é representada nesse contrato.
 
-## Testar
+## Avaliação e resultados
 
-### Como rodar os testes
-
-Abra um terminal PowerShell na raiz do projeto. Se ainda não preparou o ambiente, execute:
+Na raiz do projeto, use o ambiente preparado na seção Executar. Para uma verificação rápida, sem Ollama:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m evals.suite --offline
 ```
 
-
-
-
-
-**2. Avaliação completa com o modelo:** mantenha o Ollama aberto. Na primeira execução, baixe os modelos e crie o índice das políticas:
+Para avaliar o modelo, mantenha o Ollama aberto e o índice atualizado. A suíte envia as perguntas automaticamente e pode levar vários minutos:
 
 ```powershell
-ollama pull qwen2.5:3b
-ollama pull embeddinggemma
-.\.venv\Scripts\python.exe -m petz.index
-```
-
-Depois, rode a suíte. Ela envia as perguntas automaticamente; não é necessário conversar pelo terminal:
-
-```powershell
-# Engenharia, classificação, extração, atendimento e RAG, incluindo juiz LLM.
+# Avaliação completa, incluindo juiz LLM.
 .\.venv\Scripts\python.exe -m evals.suite
 
-# Alternativa: executa a avaliação sem o juiz LLM, mantendo os checks determinísticos.
+# Alternativa: mantém os checks determinísticos e pula o juiz.
 .\.venv\Scripts\python.exe -m evals.suite --no-semantic
-```
 
-A execução completa pode levar vários minutos, principalmente com o juiz LLM. Se as políticas mudarem, rode `petz.index` novamente antes da avaliação. Os modelos precisam ser baixados apenas quando ainda não estiverem instalados.
-
-**3. Consulte os resultados:** o terminal informa a pasta criada em `evals/runs/<execução>/`. Abra os três relatórios Markdown de classificação, extração e RAG; o `results.json` contém também os resultados de engenharia e dos cenários completos de atendimento. Cada rodada preserva as anteriores. No VS Code, use `Ctrl+Shift+V` para visualizar um Markdown formatado.
-
-Código de saída **0** indica ausência de falhas automáticas nas etapas executadas; **1** indica reprovação ou erro, e **130** indica interrupção. Para consultar o código no PowerShell, execute `$LASTEXITCODE` logo após o comando. Notas semânticas são consultivas: uma execução sem falhas não garante qualidade em qualquer conversa. Um resumo da rodada já registrada está em [Resumo dos resultados](evals/RESUMO_RESULTADOS.md).
-
-### Como funciona a avaliação semântica
-
-A avaliação semântica usa **DeepEval 4.3.2** com Ollama local na etapa de **geração RAG**. Fidelidade e relevância usam `FaithfulnessMetric` e `AnswerRelevancyMetric`; correção factual, completude e utilidade usam `GEval` com etapas próprias. Um `LLMTestCase` separa pergunta, resposta, contexto recuperado e referência. As notas nativas de 0–1 e justificativas são registradas sem renormalização. Erros são registrados por métrica e as demais continuam. Casos parciais preservam notas válidas, sem transformar falhas em zero. Respostas sem saída validada ficam sem julgamento. A verificação literal das citações da resposta continua no pipeline RAG; o DeepEval não fornece o contrato antigo de citações literais do juiz.
-
-O relatório inclui um mapa de todas as métricas com **etapa, método, critério e limitação**, notas por caso e médias com o número de casos aplicáveis. O juiz não altera os resultados determinísticos nem transforma uma falha do assistente em aprovação. Não usamos a marcação `supported` como prova de fidelidade.
-
-As notas semânticas são consultivas, sem limiar de aprovação calibrado. Apenas falhas de execução do juiz alteram o código de saída da suíte; notas baixas ficam explícitas no relatório para revisão. O objetivo é medir dimensões que os checks de texto não cobrem, sem promover uma opinião de modelo a verdade de referência.
-
-Abstenções padronizadas sem afirmações factuais têm fidelidade marcada como não aplicável, sem chamada dessa métrica. Casos sem contexto também não recebem nota de fidelidade. Correção, completude, relevância e utilidade continuam avaliadas, inclusive para identificar recusas indevidas. `threshold=None` mantém todas as notas consultivas. A versão `deepeval-rag-1` não é diretamente comparável ao antigo juiz `rag-semantic-2`.
-
-Por padrão, o juiz usa o modelo já configurado em `OLLAMA_MODEL`, evitando download automático. Essa avaliação **não é independente**: o relatório registra `same_as_generator` e a ausência de calibração humana. Para usar outro modelo local já instalado, configure `JUDGE_MODEL`; `JUDGE_TIMEOUT` tem padrão de 180 segundos por chamada, não por caso completo. As métricas são executadas localmente via `measure`, com telemetria desativada e sem upload ao Confident AI. A calibração humana continua pendente. Veja as documentações de [FaithfulnessMetric](https://deepeval.com/docs/metrics-faithfulness) e [G-Eval](https://deepeval.com/docs/metrics-llm-evals).
-
-```powershell
-# Usa o juiz na nova execução completa (padrão).
-.\.venv\Scripts\python.exe -m evals.suite
-
-# Só avalia semanticamente as respostas de uma rodada já salva.
-# Substitua <identificador> pelo nome real da pasta da rodada.
-.\.venv\Scripts\python.exe -m evals.suite --judge-saved evals/runs/<identificador>/results.json
-
-# Opcional: selecione um modelo juiz diferente, que já esteja instalado.
-$env:JUDGE_MODEL = 'nome-do-modelo-instalado'
-
-# Desativa apenas o juiz, mantendo todas as verificações anteriores.
-.\.venv\Scripts\python.exe -m evals.suite --no-semantic
-```
-
-Para rodar tudo com um único comando e salvar os resultados em Markdown:
-
-```powershell
-.\.venv\Scripts\python.exe -m evals.suite
-```
-
-Mantenha o Ollama aberto e o índice atualizado. O comando valida o kit, roda os testes de engenharia, verifica os modelos e o índice, executa os 30 cenários originais mais seis regressões e avalia onze casos de RAG com recuperação e geração. Os resultados não são corrigidos nem aprovados artificialmente: falhas de classificação, fonte, citação ou conteúdo aparecem no relatório e retornam código 1.
-
-Cada rodada cria apenas três documentos com data/hora e os sufixos **`_CLASSIFICATION.md`**, **`_EXTRACTION.md`** e **`_RAG.md`**. Cada documento mostra primeiro os testes individuais e depois suas métricas finais. Não é gerado um relatório principal. Os resultados de engenharia e atendimento completo continuam disponíveis no `results.json` em `evals/runs/<identificador>/`, junto com cópias dos três documentos. Os checkpoints atualizam apenas os arquivos dessa rodada, preservando execuções anteriores. `Ctrl+C` marca a execução como incompleta. O comando offline gera o mesmo conjunto com as etapas de LLM explicitamente não executadas.
-
-O passo a passo para abrir o terminal, preparar o ambiente, executar e interpretar o resultado está em **`evals/docs/COMO_EXECUTAR.md`**. A primeira rodada completa foi salva: 58/58 testes de engenharia, 24/36 cenários de atendimento e 8/11 cenários RAG passaram nas verificações automáticas. As falhas estão documentadas no relatório e em `evals/docs/ANALISE.md`; esses números não substituem revisão humana nem medem qualquer pergunta possível.
-
-Opções:
-
-```powershell
-# Rápido: não chama Ollama e marca as avaliações reais como não executadas.
-.\.venv\Scripts\python.exe -m evals.suite --offline --output evals/RELATORIO-OFFLINE.md
-
-# Repete os casos reais para observar variações do modelo.
-.\.venv\Scripts\python.exe -m evals.suite --repeats 3
-
-# Escolhe o nome base dos três relatórios.
-.\.venv\Scripts\python.exe -m evals.suite --output evals/MEU-RELATORIO.md
-```
-
-`evals/datasets/cases.json` contém os 30 cenários de atendimento originais; `evals/datasets/regression_cases.json` acrescenta seis regressões conversacionais. `evals/datasets/rag_cases.json` contém perguntas, passagens de referência, padrões de fatos esperados e abstenções. A suíte mede acerto de fonte, precisão dos chunks retornados, recall de chunks, MRR, nDCG e cobertura das passagens, além de verificações da resposta, citações e latência. As passagens usadas como referência são conferidas nos chunks atuais para detectar datasets desatualizados.
-
-Os checks determinísticos e o juiz semântico são apresentados separadamente. Padrões podem reprovar uma paráfrase correta ou deixar passar uma resposta incompleta; o juiz também pode errar. Revisão humana e calibração permanecem pendentes no relatório. Os casos foram preparados com auxílio de IA, sem revisão independente de especialista.
-
-Para executar somente a validação do kit ou os testes de engenharia:
-
-```powershell
-.\.venv\Scripts\python.exe -m kit.validate
+# Somente testes de engenharia.
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-Os testes de engenharia usam o banco SQLite/sqlite-vec real, com embeddings controlados. Verificam persistência, ranking, atualização de políticas, falha de embeddings, dimensões, chunking, citações e integração do dispatcher. Respostas de modelo simuladas nesses testes não medem qualidade semântica.
+O modo offline valida o kit e a engenharia; as avaliações reais do modelo ficam não executadas. A suíte completa cobre classificação, extração, 30 casos principais de atendimento, seis regressões e onze casos RAG. Os testes de engenharia usam respostas de modelo controladas e não medem qualidade semântica.
 
-Os relatórios atuais e suas rodadas em `evals/runs/` pertencem à suíte unificada. Os antigos executores separados e resultados pontuais foram removidos. Nenhuma suíte curada garante generalização; as verificações textuais podem reprovar paráfrases corretas ou aceitar respostas incompletas.
+### Últimos resultados
 
-## Observabilidade, custo e limites
+Na [rodada completa de 03/11/2026](evals/runs/20261103T144118-144500/results.json):
+
+| Etapa | Aprovados / total |
+| --- | --- |
+| Engenharia | 80 / 80 |
+| Classificação | 22 / 28 |
+| Extração de filtros | 15 / 16 |
+| Atendimento | 33 / 36 |
+| RAG | 8 / 11 |
+| Adversariais (incluídos no atendimento) | 3 / 3 |
+
+A rodada terminou com falhas. Permanecem problemas de classificação, reembolso, encaminhamento humano, assinatura e recuperação de horários. Os adversariais conhecidos passaram; variações independentes ainda precisam ser avaliadas. Veja a análise em [Resumo dos resultados](evals/RESUMO_RESULTADOS.md).
+
+### Relatórios e avaliação semântica
+
+Cada execução salva três relatórios Markdown (classificação, extração e RAG) e um `results.json` em `evals/runs/<execução>/`, preservando as rodadas anteriores. O JSON inclui também engenharia e atendimento. O terminal mostra a pasta; no VS Code, `Ctrl+Shift+V` abre a prévia do Markdown.
+
+Os checks verificam rotas, regras, filtros, fatos esperados e citações. No RAG, também são medidas recuperação e ordenação das evidências. DeepEval 4.3.2 acrescenta fidelidade e relevância com métricas nativas, e correção, completude e utilidade com G-Eval. As notas de 0 a 1 são consultivas e não alteram os checks; erros de execução do juiz são registrados como falhas. Respostas sem saída validada ficam sem julgamento, e fidelidade sem contexto factual é não aplicável.
+
+Por padrão, o juiz usa o mesmo modelo do gerador: a avaliação não é independente e ainda não tem calibração humana. `JUDGE_MODEL` seleciona outro modelo local instalado; `JUDGE_TIMEOUT` limita cada chamada (padrão: 180 s). As métricas rodam localmente, sem upload ao Confident AI. Checks textuais e juízes podem errar e não garantem generalização.
+
+Código de saída **0** indica ausência de falhas automáticas nas etapas executadas; **1**, reprovação ou erro; **130**, interrupção. Consulte `$LASTEXITCODE` após o comando. Opções como `--repeats`, `--judge-saved` e `--output`, além do detalhamento das métricas, estão no [guia de execução](evals/docs/COMO_EXECUTAR.md).
+
+## Decisões técnicas e desempenho
 
 ### Decisão de modelos e trade-offs
 
-O `qwen2.5:3b` foi escolhido como ponto de partida para uma demonstração local: um único modelo atende classificação, extração estruturada e geração, simplificando instalação e operação. Essa escolha prioriza viabilidade local; não resulta de um benchmark comparativo que prove superioridade sobre outros modelos. As falhas registradas na avaliação mostram que a qualidade ainda precisa melhorar, sobretudo na classificação e nos cenários adversariais. 
+O `qwen2.5:3b` foi escolhido como ponto de partida para uma demonstração local: um único modelo atende classificação, extração estruturada e geração, simplificando instalação e operação. Essa escolha prioriza viabilidade local; não resulta de um benchmark comparativo que prove superioridade sobre outros modelos. As falhas registradas na avaliação mostram que a qualidade ainda precisa melhorar, sobretudo na classificação e na geração RAG. Os três adversariais conhecidos passaram na última rodada. 
 
 O `embeddinggemma` separa a representação semântica da geração de texto e permite indexação e consulta locais. O índice persistente evita recalcular os documentos a cada conversa. Em contrapartida, são dois modelos para carregar e manter, o que pode pressionar a memória. SQLite/sqlite-vec com busca exata foi escolhido pela simplicidade operacional e pelo corpus de apenas 16 chunks; em uma base maior, seria necessário medir a necessidade de outro índice, busca híbrida e reranking. Regras e autorização em código tornam decisões verificáveis, mas exigem manutenção explícita quando as políticas mudam.
 
 ### Latência por conversa
 
-A [rodada completa de 31/10/2026](evals/runs/20261031T223524-894000/results.json), com Qwen 2.5 3B e EmbeddingGemma locais, registrou os seguintes tempos totais nos 36 cenários de atendimento:
+A [rodada completa de 03/11/2026](evals/runs/20261103T144118-144500/results.json), com Qwen 2.5 3B e EmbeddingGemma locais, registrou os seguintes tempos totais nos 36 cenários de atendimento:
 
 | Medida | Tempo por cenário/conversa de teste |
 | --- | --- |
-| Mediana | 8,53 s |
-| Média | 15,23 s |
-| Percentil 95 (posto mais próximo) | 38,89 s |
-| Mínimo–máximo | 4,39–50,83 s |
+| Mediana | 8,55 s |
+| Média | 15,66 s |
+| Percentil 95 (posto mais próximo) | 42,24 s |
 
 São 45 turnos distribuídos em 36 cenários; o tempo inclui todos os turnos de cada cenário e as chamadas realizadas pelo assistente, sem o tempo de digitação de uma pessoa. A amostra inclui casos reprovados e não representa apenas respostas corretas. Para uma conversa curta semelhante às do conjunto, a referência inicial é aproximadamente 15 segundos de processamento total, com variação relevante entre fluxos. Esse número não é latência por mensagem nem garantia de produção. Hardware detalhado, concorrência e carregamento frio/quente não foram controlados; a medição deve ser repetida no ambiente de destino. O juiz LLM é uma etapa de avaliação separada e não entra nesses tempos de atendimento.
 
@@ -313,11 +261,11 @@ Traces em `logs/traces.jsonl` incluem rota, fontes, código da ferramenta, erro 
 
 Não há cobrança de API no Ollama local; há consumo de CPU/GPU, RAM e energia. Uma dúvida de política faz uma ou duas chamadas de classificação, um embedding da pergunta e uma geração. A indexação gera embeddings dos documentos uma vez por versão. Carregar os dois modelos em máquina com pouca RAM pode aumentar bastante a latência. Os relatórios reais registram o tempo total por cenário; não são benchmark de produção.
 
-O kit, os prompts de geração de dados e as regras RN01–RN04 estão documentados em `kit/`. Tudo é fictício e foi criado com auxílio do Codex. Não há transações reais, login de produção ou abertura de chamado. Para a regra nova na apresentação, atualizar política e dados, reindexar, adicionar três casos e rodar toda a suíte.
+O kit, os prompts de geração de dados e as regras RN01–RN04 estão documentados em `kit/`. Tudo é fictício e foi criado com auxílio do Codex. Não há transações reais, login de produção ou abertura de chamado. Alterações nas regras exigem atualizar políticas e dados, reindexar e acrescentar casos de avaliação.
 
-## O que eu faria se tivesse mais tempo
+## Próximos passos
 
-Minha primeira prioridade seria corrigir as falhas de classificação e dos três casos adversariais da rodada registrada, repetindo a suíte para verificar as correções. Depois, evoluiria o projeto nestas frentes:
+Minha primeira prioridade seria corrigir as falhas restantes de classificação e RAG e ampliar os testes adversariais, repetindo a suíte para verificar as mudanças. Depois, evoluiria o projeto nestas frentes:
 
 - **Mais testes e casos de avaliação:** ampliaria o conjunto complementar de regressão, mantendo os 30 casos principais do entregável. Incluiria mais paráfrases, erros de digitação, mensagens ambíguas, conversas longas com mudanças de assunto, limites das regras RN01–RN04 e falhas das ferramentas. Acrescentaria ataques de prompt injection em mensagens e documentos e tentativas de acessar dados de outros clientes. Rodaria os casos várias vezes para medir a consistência das respostas.
 - **Comparação de modelos:** um modelo maior ou uma API hospedada seriam alternativas a comparar, considerando qualidade, memória, latência, privacidade e custo. Usaria o mesmo conjunto de avaliação para verificar se a troca melhora classificação, extração e geração antes de adotá-la.
@@ -326,3 +274,6 @@ Minha primeira prioridade seria corrigir as falhas de classificação e dos trê
 - **Desempenho e custo:** mediria latência e consumo de energia no hardware de destino, separando os fluxos, o carregamento inicial dos modelos e o atendimento simultâneo. Usaria essas medições para avaliar otimizações e estimar o custo operacional por conversa com mais precisão.
 - **Qualidade da recuperação:** experimentaria divisão dos documentos por seção, busca híbrida e reranking, adotando as mudanças que melhorassem a recuperação das evidências e a qualidade das respostas nos testes.
 - **Integrações e fluxos completos:** implementaria autenticação real, integração com pedidos e encaminhamento ao atendimento humano. Também acrescentaria seleção de itens em pedidos com vários produtos e tratamento de múltiplas intenções na mesma mensagem, preservando autorização e regras de negócio em código.
+
+
+
