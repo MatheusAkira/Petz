@@ -246,8 +246,44 @@ Os relatórios atuais e suas rodadas em `evals/runs/` pertencem à suíte unific
 
 ## Observabilidade, custo e limites
 
+### Decisão de modelos e trade-offs
+
+O `qwen2.5:3b` foi escolhido como ponto de partida para uma demonstração local: um único modelo atende classificação, extração estruturada e geração, simplificando instalação e operação. Essa escolha prioriza viabilidade local; não resulta de um benchmark comparativo que prove superioridade sobre outros modelos. As falhas registradas na avaliação mostram que a qualidade ainda precisa melhorar, sobretudo na classificação e nos cenários adversariais. 
+
+O `embeddinggemma` separa a representação semântica da geração de texto e permite indexação e consulta locais. O índice persistente evita recalcular os documentos a cada conversa. Em contrapartida, são dois modelos para carregar e manter, o que pode pressionar a memória. SQLite/sqlite-vec com busca exata foi escolhido pela simplicidade operacional e pelo corpus de apenas 16 chunks; em uma base maior, seria necessário medir a necessidade de outro índice, busca híbrida e reranking. Regras e autorização em código tornam decisões verificáveis, mas exigem manutenção explícita quando as políticas mudam.
+
+### Latência por conversa
+
+A [rodada completa de 31/10/2026](evals/runs/20261031T223524-894000/results.json), com Qwen 2.5 3B e EmbeddingGemma locais, registrou os seguintes tempos totais nos 36 cenários de atendimento:
+
+| Medida | Tempo por cenário/conversa de teste |
+| --- | --- |
+| Mediana | 8,53 s |
+| Média | 15,23 s |
+| Percentil 95 (posto mais próximo) | 38,89 s |
+| Mínimo–máximo | 4,39–50,83 s |
+
+São 45 turnos distribuídos em 36 cenários; o tempo inclui todos os turnos de cada cenário e as chamadas realizadas pelo assistente, sem o tempo de digitação de uma pessoa. A amostra inclui casos reprovados e não representa apenas respostas corretas. Para uma conversa curta semelhante às do conjunto, a referência inicial é aproximadamente 15 segundos de processamento total, com variação relevante entre fluxos. Esse número não é latência por mensagem nem garantia de produção. Hardware detalhado, concorrência e carregamento frio/quente não foram controlados; a medição deve ser repetida no ambiente de destino. O juiz LLM é uma etapa de avaliação separada e não entra nesses tempos de atendimento.
+
+### Estimativa de custo por conversa
+
+O custo de API de inferência desta implementação local é **R$ 0 por conversa**, pois não há chamadas a um provedor pago. 
+
+
 Traces em `logs/traces.jsonl` incluem rota, fontes, código da ferramenta, erro de modelo, latência total e metadados de RAG: IDs dos chunks, escores e estágio. Não registram mensagens, embeddings de consulta ou texto das respostas. Resultados de avaliação contêm apenas conversas sintéticas e ficam separados dos logs.
 
 Não há cobrança de API no Ollama local; há consumo de CPU/GPU, RAM e energia. Uma dúvida de política faz uma ou duas chamadas de classificação, um embedding da pergunta e uma geração. A indexação gera embeddings dos documentos uma vez por versão. Carregar os dois modelos em máquina com pouca RAM pode aumentar bastante a latência. Os relatórios reais registram o tempo total por cenário; não são benchmark de produção.
 
-O kit, os prompts de geração de dados e as regras RN01–RN04 estão documentados em `kit/`. Tudo é fictício e foi criado com auxílio do Codex. Não há transações reais, login de produção ou abertura de chamado. Melhorias futuras: avaliação independente de fidelidade, reranking, chunking por seção, extração estruturada de campos, múltiplas intenções e integração real de atendimento. Para a regra nova na apresentação, atualizar política e dados, reindexar, adicionar três casos e rodar toda a suíte.
+O kit, os prompts de geração de dados e as regras RN01–RN04 estão documentados em `kit/`. Tudo é fictício e foi criado com auxílio do Codex. Não há transações reais, login de produção ou abertura de chamado. Para a regra nova na apresentação, atualizar política e dados, reindexar, adicionar três casos e rodar toda a suíte.
+
+## O que eu faria se tivesse mais tempo
+
+Minha primeira prioridade seria corrigir as falhas de classificação e dos três casos adversariais da rodada registrada, repetindo a suíte para verificar as correções. Depois, evoluiria o projeto nestas frentes:
+
+- **Mais testes e casos de avaliação:** ampliaria o conjunto complementar de regressão, mantendo os 30 casos principais do entregável. Incluiria mais paráfrases, erros de digitação, mensagens ambíguas, conversas longas com mudanças de assunto, limites das regras RN01–RN04 e falhas das ferramentas. Acrescentaria ataques de prompt injection em mensagens e documentos e tentativas de acessar dados de outros clientes. Rodaria os casos várias vezes para medir a consistência das respostas.
+- **Comparação de modelos:** um modelo maior ou uma API hospedada seriam alternativas a comparar, considerando qualidade, memória, latência, privacidade e custo. Usaria o mesmo conjunto de avaliação para verificar se a troca melhora classificação, extração e geração antes de adotá-la.
+- **Interface de atendimento:** criaria uma interface web de chat com histórico da sessão, fontes consultadas, indicação de processamento e mensagens claras de erro. Faria testes de usabilidade para avaliar se as pessoas conseguem consultar pedidos, entender as regras e pedir ajuda sem depender do terminal.
+- **Revisão humana da avaliação:** revisaria as referências com outra pessoa e calibraria um juiz independente do modelo gerador, comparando seus julgamentos com avaliações humanas, principalmente em respostas incompletas, recusas e situações de segurança.
+- **Desempenho e custo:** mediria latência e consumo de energia no hardware de destino, separando os fluxos, o carregamento inicial dos modelos e o atendimento simultâneo. Usaria essas medições para avaliar otimizações e estimar o custo operacional por conversa com mais precisão.
+- **Qualidade da recuperação:** experimentaria divisão dos documentos por seção, busca híbrida e reranking, adotando as mudanças que melhorassem a recuperação das evidências e a qualidade das respostas nos testes.
+- **Integrações e fluxos completos:** implementaria autenticação real, integração com pedidos e encaminhamento ao atendimento humano. Também acrescentaria seleção de itens em pedidos com vários produtos e tratamento de múltiplas intenções na mesma mensagem, preservando autorização e regras de negócio em código.
