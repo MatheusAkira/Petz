@@ -11,7 +11,7 @@ from urllib.error import HTTPError
 
 from kit.api_mock import OrderAPI, Session
 from .retrieval import ROOT, Chunk, Retriever, RetrievalError, norm
-from .rules import cancellable, free_shipping, return_eligible
+from .rules import cancellable, free_shipping, return_eligible, shipping_threshold
 
 ABSTENTION_TEXT = 'Não sei responder com a base disponível. Não encontrei política suficiente sobre esse tema. Posso indicar atendimento humano.'
 
@@ -147,18 +147,18 @@ class Assistant:
         try:
             # A pergunta original é a consulta: não força o documento pelo nome da intenção.
             documents = self.retriever.as_langchain_retriever().invoke(message,config={'run_name':'policy_retrieval','callbacks':[]})
-            chunks = [Chunk(d.metadata['chunk_id'],d.metadata['source'],d.metadata['title'],d.page_content,d.metadata['score']) for d in documents]
+            chunks = [Chunk(d.metadata['chunk_id'],d.metadata['source'],d.metadata['title'],d.page_content,d.metadata['score'],d.metadata.get('title_match',False)) for d in documents]
         except RetrievalError as error:
             return Reply(str(error),'erro_rag',data={'rag':{'stage':'retrieval','status':'error'}})
-        metrics = {'stage':'retrieval','status':'ok','chunks':[{'id':c.id,'score':c.score} for c in chunks]}
+        metrics = {'stage':'retrieval','status':'ok','chunks':[{'id':c.id,'source':c.source,'score':c.score,'title_match':c.title_match} for c in chunks]}
         if not chunks:
-            return Reply(ABSTENTION_TEXT,'abstencao',data={'rag':metrics})
+            return Reply(ABSTENTION_TEXT,'abstencao',data={'rag':{**metrics,'reason':'no_evidence'}})
         try:
             generated = generate_answer(message,chunks)
-        except GenerationError:
-            return Reply('Não consegui gerar uma resposta com fontes verificáveis. Tente novamente ou procure atendimento humano.','erro_rag',data={'rag':{**metrics,'stage':'generation','status':'error'}})
+        except GenerationError as error:
+            return Reply('Não consegui gerar uma resposta com fontes verificáveis. Tente novamente ou procure atendimento humano.','erro_rag',data={'rag':{**metrics,'stage':'generation','status':'error','reason':error.code}})
         if not generated['supported']:
-            return Reply(ABSTENTION_TEXT,'abstencao',data={'rag':{**metrics,'supported':False}})
+            return Reply(ABSTENTION_TEXT,'abstencao',data={'rag':{**metrics,'stage':'generation','supported':False,'reason':'unsupported'}})
         by_id = {c.id:c for c in chunks}
         sources = sorted({by_id[c['chunk_id']].source for c in generated['citations']})
         return Reply(generated['answer'],intent,sources,{'rag':{**metrics,'stage':'generation','supported':True},'citations':generated['citations']})
@@ -230,12 +230,18 @@ class Assistant:
         if amount: slots['amount'] = amount
         self.context['pending'] = 'frete'
         source = ['kit/politicas/frete.md']
-        if not {'region','amount'} <= slots.keys():
+        # Subtotal antigo não responde perguntas gerais: só calcula com valor novo
+        # ou com uma resposta curta que informa apenas a região pedida.
+        short_region_reply = bool(region) and not amount and '?' not in t and len(t.split()) <= 3
+        if not {'region','amount'} <= slots.keys() or not (amount or short_region_reply):
             reply = self._policy_answer(t,'frete')
             if reply.route == 'frete': reply.text += ' Informe o subtotal e a região para calcular.'
             return reply
         eligible = free_shipping(slots['amount'],slots['region'])
-        return Reply('Frete grátis pela RN03.' if eligible else 'Sem frete grátis pela RN03. Consulte o custo no checkout.', 'frete',source,{'eligible':eligible,**slots})
+        limit = shipping_threshold(slots['region'])
+        text = (f"Sim. Frete grátis pela RN03: o subtotal de R$ {slots['amount']} é maior que R$ {limit} para {slots['region']}." if eligible
+                else f"Não. Pela RN03, o frete grátis em {slots['region']} exige subtotal acima de R$ {limit}; o informado foi R$ {slots['amount']}. Consulte o custo no checkout.")
+        return Reply(text,'frete',source,{'eligible':eligible,**slots})
 
     # Mostra uma visão geral do catálogo e encerra os filtros da busca anterior.
     # Lista categorias com estoque e até cinco exemplos reais, escolhendo um

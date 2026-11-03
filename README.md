@@ -53,6 +53,14 @@ Onde está meu pedido?
 
 Digite `sair` para encerrar. A data é obtida do computador, com prioridade para `PETZ_TODAY` se definida. `--date 2026-10-29` reproduz os prazos dos pedidos fictícios. `--customer cliente-2` seleciona a identidade de demonstração; não é autenticação de produção. `--backend ollama` continua aceito, sendo o único backend disponível. Código: `main` em [petz/__main__.py](petz/__main__.py) e `Assistant.__init__` em [petz/assistant.py](petz/assistant.py).
 
+Para iniciar como **cliente-2**, usando **29/10/2026** como data de referência, execute na raiz do projeto:
+
+```powershell
+.\.venv\Scripts\python.exe -m petz --customer cliente-2 --date 2026-10-29
+```
+
+Troque `cliente-2` por `cliente-1` ou `cliente-3` para testar outro cliente. A data usa o formato `AAAA-MM-DD` e serve para calcular os prazos das regras de negócio, como devolução; ela não altera as datas dos pedidos. Sem `--date`, vale `PETZ_TODAY`, se definida, ou a data do computador.
+
 ## Arquitetura e componentes
 
 Usamos os pacotes oficiais `langchain-core` e `langchain-ollama`, com versões fixadas em `requirements.txt`. A recuperação e a geração usam componentes LangChain; classificação, autorização e regras mantêm contratos próprios. Dependências: [requirements.txt](requirements.txt).
@@ -99,14 +107,14 @@ Os perfis de tarefa também ficam nesse módulo: classificação usa até 160 to
 
 ```mermaid
 flowchart TD
-    M[Políticas Markdown] --> C[Chunks com sobreposição]
+    M[Políticas Markdown] --> C[Políticas curtas inteiras ou chunks com sobreposição]
     C --> E[EmbeddingGemma via Ollama]
     E --> DB[(SQLite com sqlite-vec)]
     Q[Pergunta] --> L[LLM classifica a intenção]
     L --> P["Dúvida de política<br/>Ex.: qual o prazo de reembolso por Pix?"]
     P --> EQ[Embedding da pergunta original]
     EQ --> DB
-    DB --> K[Top-k por similaridade de cosseno]
+    DB --> K[Top-k por título e similaridade de cosseno]
     K --> G[Qwen recebe pergunta e trechos]
     G --> V[Validação de fontes e citações]
     V --> R[Resposta com fontes ou abstenção]
@@ -115,6 +123,14 @@ flowchart TD
 ```
 
 O índice busca apenas políticas; pedidos usam consulta autorizada e produtos usam o catálogo. Fontes: [retrieval.py](petz/retrieval.py), [api_mock.py](kit/api_mock.py) e [assistant.py](petz/assistant.py).
+
+A recuperação combina similaridade vetorial com correspondência no título da política (“assinatura”, “frete”), respeitando `RAG_TOP_K`. Palavras genéricas como “política” e “loja” não contam. Recuperar um documento não prova que ele responde: a geração ainda precisa apresentar evidência ou se abster.
+
+Políticas com até 220 palavras ficam inteiras; documentos maiores são divididos em trechos de 110 palavras, com sobreposição de 25. Após atualizar o código, rode `.\.venv\Scripts\python.exe -m petz.index` para reconstruir o índice.
+
+Na geração, as citações exigem ID conhecido e passagem literal; falhas de validação têm uma única nova tentativa. Os logs guardam fonte, cosseno, `title_match` e o `reason` de falhas, sem a saída do modelo. Código: [rag.py](petz/rag.py).
+
+Quando a pergunta coincide com uma frase declarativa da política (com ou sem “não”, mínimo de cinco palavras), o sistema responde com a frase literal e a citação, sem chamar o modelo. Exemplo: “Encerrar uma assinatura cancela automaticamente pedidos existentes?” encontra a afirmação de que isso não ocorre. A comparação é textual, não semântica.
 
 O contexto mantém a operação pendente: após “quero devolver”, responder “1001” continua a devolução. Uma nova pergunta muda o assunto. Código: `Assistant._respond` em [assistant.py](petz/assistant.py).
 
@@ -346,6 +362,8 @@ Os tempos incluem a conversa de teste completa, sem digitação ou juiz LLM; nã
 Os logs guardam rota, fontes, erros e latência, sem mensagens ou respostas. Código: `Assistant.ask` em [assistant.py](petz/assistant.py).
 
 ## Próximos passos
+
+
 
 Minha primeira prioridade seria corrigir as falhas restantes de classificação e RAG e ampliar os testes adversariais, repetindo a suíte para verificar as mudanças. Depois, evoluiria o projeto nestas frentes:
 

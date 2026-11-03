@@ -3,9 +3,11 @@ from datetime import date
 from decimal import Decimal
 
 # Verifica frete grátis acima de R$ 149 no Sul/Sudeste ou R$ 249 nas demais regiões.
+def shipping_threshold(region):
+    return Decimal('149') if region in {'Sul', 'Sudeste'} else Decimal('249')
+
 def free_shipping(total, region):
-    threshold = Decimal('149') if region in {'Sul', 'Sudeste'} else Decimal('249')
-    return Decimal(str(total)) > threshold
+    return Decimal(str(total)) > shipping_threshold(region)
 
 # Verifica os prazos de devolução: até 7 dias por arrependimento ou 30 por defeito.
 # Ração e areia abertas só são elegíveis por defeito; datas futuras são recusadas.

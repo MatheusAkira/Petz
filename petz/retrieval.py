@@ -3,6 +3,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import sqlite3
 import unicodedata
 from dataclasses import asdict, dataclass
@@ -14,7 +15,7 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
 
 ROOT = Path(__file__).resolve().parents[1]
-CHUNK_VERSION = 'words-110-overlap-25-prefix-v1'
+CHUNK_VERSION = 'short-policy-220-words-110-overlap-25-v2'
 QUERY_PREFIX = 'task: search result | query: '
 DOC_PREFIX = 'title: Política Pet Aurora | text: '
 
@@ -32,14 +33,26 @@ class Chunk:
     title: str
     text: str
     score: float = 0.0
+    title_match: bool = False
 
-# Divide as políticas Markdown em trechos de até 110 palavras, com sobreposição de 25.
+def title_matches(query,title):
+    # Apenas termos específicos do título; palavras genéricas não resgatam documentos.
+    generic = {'a','o','as','os','e','de','da','do','das','dos','em','para','por','com',
+               'politica','politicas','pet','aurora','loja','pedido','pedidos','rn01','rn02','rn03','rn04'}
+    terms = set(re.findall(r'[a-z0-9]+',norm(title))) - generic
+    words = set(re.findall(r'[a-z0-9]+',norm(query)))
+    return bool(terms & words)
+
+# Preserva políticas curtas inteiras; documentos longos usam 110 palavras e overlap 25.
 def chunk_documents(directory):
     chunks = []
     for path in sorted(Path(directory).glob('*.md')):
         text = path.read_text(encoding='utf-8')
         title = text.splitlines()[0].lstrip('# ').strip()
         words = text.split('\n',1)[-1].split()
+        if len(words) <= 220:
+            chunks.append(Chunk(f'{path.stem}:0',f'kit/politicas/{path.name}',title,text.split('\n',1)[-1].strip()))
+            continue
         for index,start in enumerate(range(0,len(words),85)):
             chunks.append(Chunk(f'{path.stem}:{index}',f'kit/politicas/{path.name}',title,' '.join(words[start:start+110])))
             if start+110 >= len(words): break
@@ -117,7 +130,7 @@ class Retriever:
 
     # Calcula um hash dos textos, modelo e configurações para detectar necessidade de reindexação.
     def _fingerprint(self,chunks,identity):
-        payload = {'chunks':[asdict(c) for c in chunks],'model':identity,'version':CHUNK_VERSION,
+        payload = {'chunks':[{k:v for k,v in asdict(c).items() if k != 'title_match'} for c in chunks],'model':identity,'version':CHUNK_VERSION,
             'query_prefix':os.getenv('EMBEDDING_QUERY_PREFIX',QUERY_PREFIX),
             'document_prefix':os.getenv('EMBEDDING_DOCUMENT_PREFIX',DOC_PREFIX)}
         return hashlib.sha256(json.dumps(payload,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
@@ -168,11 +181,17 @@ class Retriever:
                 raise RetrievalError('Políticas ou modelo mudaram. Atualize: python -m petz.index')
             vector = self.embedder.embed([query],query=True)[0]
             if len(vector) != int(meta['dimension']): raise RetrievalError('Dimensão diferente do índice. Reindexe as políticas.')
+            count = db.execute('SELECT COUNT(*) FROM chunks').fetchone()[0]
             rows = db.execute('''WITH nearest AS (
                 SELECT rowid,distance FROM vectors WHERE embedding MATCH ? AND k = ?
             ) SELECT c.chunk_id,c.source,c.title,c.body,n.distance
-              FROM nearest n JOIN chunks c ON c.id=n.rowid ORDER BY n.distance''',(json.dumps(vector),limit)).fetchall()
-            return [Chunk(row[0],row[1],row[2],row[3],round(1-row[4],6)) for row in rows if math.isfinite(row[4]) and 1-row[4] >= threshold]
+              FROM nearest n JOIN chunks c ON c.id=n.rowid ORDER BY n.distance''',(json.dumps(vector),count)).fetchall()
+            # Busca híbrida para a base pequena: o título é um sinal independente,
+            # sem alterar o cosseno registrado nem baixar o limiar vetorial.
+            hits = [Chunk(row[0],row[1],row[2],row[3],round(1-row[4],6),title_matches(query,row[2]))
+                    for row in rows if math.isfinite(row[4]) and
+                    (1-row[4] >= threshold or title_matches(query,row[2]))]
+            return sorted(hits,key=lambda c:(c.title_match,c.score),reverse=True)[:limit]
         except sqlite3.Error as error:
             raise RetrievalError('Índice vetorial inválido. Execute: python -m petz.index') from error
         finally:
@@ -184,4 +203,4 @@ class PolicyRetriever(BaseRetriever):
 
     # Converte os trechos encontrados em Documents do LangChain, preservando fontes e escores.
     def _get_relevant_documents(self,query,*,run_manager):
-        return [Document(page_content=c.text,metadata={'chunk_id':c.id,'source':c.source,'title':c.title,'score':c.score}) for c in self.store.search(query)]
+        return [Document(page_content=c.text,metadata={'chunk_id':c.id,'source':c.source,'title':c.title,'score':c.score,'title_match':c.title_match}) for c in self.store.search(query)]

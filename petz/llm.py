@@ -72,6 +72,9 @@ Se a mensagem introduzir outro assunto, classifique o novo assunto, sem forçar 
 - "Cadê minha encomenda?" => pedido.
 - "Gostaria de fazer uma devolução" => trocas. Nunca use rótulos fora do enum, como devolucao.
 - "Meu produto veio com defeito, posso devolver?" => trocas.
+- "Arrependimento pode ser solicitado após 8 dias da entrega?" => politica_trocas: pergunta geral sobre prazo, sem pedido em andamento.
+- "Qual o prazo para trocar por defeito?" => politica_trocas.
+- "Quando o cancelamento é permitido?" => politica_cancelamento.
 - "Quais produtos vocês têm?" ou "Mostre o catálogo" => catalogo, mesmo após uma busca sem resultado.
 - "Tem ração para gato até 100 reais?" => produto.
 - "Tem produto computador?" => produto; "O que é um processador?" => desconhecido.

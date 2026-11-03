@@ -63,6 +63,8 @@ def generation_checks(output,gold,hits):
     if not gold['should_abstain'] and validated['supported']:
         for pattern in gold['answer_patterns']:
             if not re.search(pattern,validated['answer'],re.IGNORECASE): errors.append(f'Fato/padrão esperado ausente: {pattern}')
+        for pattern in gold.get('forbidden_patterns',[]):
+            if re.search(pattern,validated['answer'],re.IGNORECASE): errors.append(f'Afirmação proibida presente: {pattern}')
         sources = {c.id:c.source for c in hits}
         if not any(sources[c['chunk_id']] == f"kit/politicas/{gold['source']}.md" for c in validated['citations']):
             errors.append('Resposta não cita a fonte esperada.')
@@ -72,7 +74,7 @@ def source_hash():
     digest = hashlib.sha256()
     for folder in ['petz','kit','tests','evals']:
         for path in sorted((ROOT/folder).rglob('*')):
-            if path.is_file() and '__pycache__' not in path.parts and (path.suffix == '.py' or path.name in {'cases.json','regression_cases.json','rag_cases.json','classification_cases.json','extraction_cases.json'} or folder == 'kit'):
+            if path.is_file() and '__pycache__' not in path.parts and (path.suffix == '.py' or path.name in {'cases.json','regression_cases.json','rag_cases.json','rag_regression_cases.json','classification_cases.json','extraction_cases.json'} or folder == 'kit'):
                 digest.update(path.relative_to(ROOT).as_posix().encode()); digest.update(path.read_bytes())
     return digest.hexdigest()
 
@@ -112,11 +114,11 @@ def run_conversation(case,repeat):
     row['latency_ms'] = round((time.perf_counter()-start)*1000,3)
     return row
 
-def run_rag_case(gold,repeat,retriever,all_chunks):
+def run_rag_case(gold,repeat,retriever,all_chunks,*,hits=None):
     start = time.perf_counter()
     row = {'id':gold['id'],'repeat':repeat,'question':gold['question'],'passed':False,'errors':[]}
     try:
-        hits = retriever.search(gold['question'])
+        hits = retriever.search(gold['question']) if hits is None else hits
         row['hits'] = [asdict(c) for c in hits]
         row['retrieval'] = retrieval_metrics(hits,gold,all_chunks)
         if not gold['should_abstain'] and row['retrieval']['evidence_coverage'] < 1:
