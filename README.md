@@ -74,6 +74,17 @@ Os módulos usam o Ollama para estas tarefas. Os modelos indicados são os padr�
 | **`rag.py`** | Gerar respostas com os trechos recuperados das políticas. | `qwen2.5:3b` | LangChain com `ChatOllama`, criado pela fábrica centralizada. |
 | **`retrieval.py`** | Gerar embeddings e consultar a identificação do modelo instalado. | `embeddinggemma` | HTTP para `/api/embed` e `/api/tags`, pelo cliente centralizado. |
 
+Testes de cada módulo (engenharia usa respostas controladas; avaliação do modelo usa Ollama real):
+
+| Módulo | Testes de engenharia | Avaliação com modelo real |
+| --- | --- | --- |
+| [llm.py](petz/llm.py) | [test_contracts.py](tests/test_contracts.py): contrato de intenção, segunda tentativa JSON e rejeição de ferramentas/argumentos indevidos | Classificação: [classification_cases.json](evals/datasets/classification_cases.json) |
+| [catalog.py](petz/catalog.py) | [test_catalog.py](tests/test_catalog.py): filtros, nome específico, consentimento para alternativas e timeout | Extração: [extraction_cases.json](evals/datasets/extraction_cases.json) |
+| [rag.py](petz/rag.py) | `GenerationTests` em [test_rag.py](tests/test_rag.py): JSON, citações, abstenção e contexto enviado ao modelo | Geração e juiz semântico: [rag_cases.json](evals/datasets/rag_cases.json) |
+| [retrieval.py](petz/retrieval.py) | `VectorStoreTests` em [test_rag.py](tests/test_rag.py): trechos, persistência, ordenação, atualização do índice e vetores inválidos | Recuperação de evidências: [rag_cases.json](evals/datasets/rag_cases.json) |
+
+Os quatro módulos também participam dos cenários de atendimento conforme a intenção. Execução: [components.py](evals/components.py) e [suite.py](evals/suite.py).
+
 [petz/config.py](petz/config.py) é o único lugar que lê os modelos, endereço e limites do Ollama. `OllamaSettings` reúne a URL, o modelo de conversa, o embedder, os três timeouts e o tempo de permanência em memória. As configurações são lidas ao criar o cliente, sem congelar o ambiente durante o import.
 
 [petz/ollama_client.py](petz/ollama_client.py) é o único lugar que cria `ChatOllama` e envia requisições HTTP ao serviço. Ele oferece:
@@ -230,6 +241,23 @@ O prompt de `catalog.py` descreve os seis campos do schema, seus valores padrão
 
 ## Avaliação e resultados
 
+### Como executar os testes
+
+Após a [instalação](#instalação-e-execução), execute na raiz do projeto, em PowerShell. Para a avaliação completa, mantenha o Ollama aberto e o índice atualizado:
+
+```powershell
+# Suíte completa: engenharia, modelo real e juiz semântico.
+.\.venv\Scripts\python.exe -m evals.suite
+
+# Apenas validação do kit e engenharia, sem Ollama.
+.\.venv\Scripts\python.exe -m evals.suite --offline
+
+# Modelo real e engenharia, sem juiz semântico.
+.\.venv\Scripts\python.exe -m evals.suite --no-semantic
+```
+
+Escolha um dos comandos. A execução completa salva `results.json` e relatórios em `evals/runs/<execução>/`; o terminal informa a pasta. Para ver as opções, use `-m evals.suite --help`. Código: `main` em [suite.py](evals/suite.py).
+
 Resultados da [rodada de 03/11/2026](evals/runs/20261103T144118-144500/results.json), com Qwen 2.5 3B e EmbeddingGemma. **Resultado = aprovados/total.**
 
 ### Engenharia
@@ -248,10 +276,12 @@ Testa o modelo local em tarefas reais. Cada grupo verifica uma parte diferente d
 | --- | --- | ---: | ---: |
 | Classificação | Identificar a intenção: “quero cancelar” → cancelamento | 22/28 | 78,6% |
 | Extração | Obter filtros: “ração para gato até R$ 100” → espécie e orçamento | 15/16 | 93,8% |
-| Atendimento | Conduzir a conversa, consultar ferramentas e responder corretamente | 33/36 | 91,7% |
+| Atendimento | Validar o fluxo completo: intenção, contexto, ferramentas, regras e resposta final | 33/36 | 91,7% |
 | RAG | Recuperar a política correta e responder com fatos e citações válidos | 8/11 | 72,7% |
 
 #### Subgrupos de atendimento
+
+**Exemplo:** “quero devolver” → informar o pedido → responder motivo e condição da embalagem → receber a análise de elegibilidade. O teste verifica a conversa inteira; extração verifica apenas os filtros de uma mensagem. Execução: `run_conversation` em [suite.py](evals/suite.py).
 
 Avaliam conversas completas, incluindo regras de negócio, contexto e tratamento de erros. Cenários: [cases.json](evals/datasets/cases.json) e [regression_cases.json](evals/datasets/regression_cases.json). Verificações: `check` em [evals/checks.py](evals/checks.py).
 
