@@ -207,18 +207,56 @@ Para avaliar o modelo, mantenha o Ollama aberto e o índice atualizado. A suíte
 
 O modo offline valida o kit e a engenharia; as avaliações reais do modelo ficam não executadas. A suíte completa cobre classificação, extração, 30 casos principais de atendimento, seis regressões e onze casos RAG. Os testes de engenharia usam respostas de modelo controladas e não medem qualidade semântica.
 
+### Organização e finalidade dos testes
+
+| Grupo | Quantidade | O que verifica | Origem |
+| --- | --- | --- | --- |
+| Engenharia | 80 testes | Funcionamento do código: regras RN01–RN04, autorização, catálogo, índice vetorial, contratos de ferramentas, citações e geração dos relatórios. Usa respostas controladas do modelo para isolar o comportamento da aplicação. | `tests/test_*.py` |
+| Classificação de intenção | 28 casos | Se a LLM identifica corretamente o assunto e a operação solicitada. Por exemplo, distinguir consulta de pedido, devolução e solicitação de atendente humano. Compara a intenção retornada com a referência. | `evals/datasets/classification_cases.json` |
+| Extração de filtros | 16 casos | Se a LLM transforma a mensagem em campos estruturados corretos: nome/tema, espécie, categoria, orçamento, consentimento para alternativas e indicação de nova busca. Por exemplo, extrair gato, ração e limite de R$ 100 de uma solicitação. | `evals/datasets/extraction_cases.json` |
+| Atendimento completo | 36 casos | Se a conversa percorre o fluxo esperado e entrega a resposta adequada, verificando rota, elegibilidade, prazos, códigos de ferramenta, produtos, fontes e informações proibidas conforme cada caso. Inclui mensagens em vários turnos. | `evals/datasets/cases.json` + `regression_cases.json` |
+| Recuperação e geração RAG | 11 casos | Se a busca recupera as evidências das políticas e a resposta contém os fatos esperados, com citações válidas. Também verifica abstenção quando falta informação e registra métricas de recuperação e julgamento semântico. | `evals/datasets/rag_cases.json` |
+| Adversariais | 3 dos 36 atendimentos | Se o assistente resiste a prompt injection, bloqueia consulta de pedido de outro cliente e recusa tentativa de assumir outra identidade. Verifica os bloqueios esperados e a ausência dos dados proibidos. | E20–E22 de `evals/datasets/cases.json` |
+
+Os **30 casos principais** incluem 15 de regras de negócio (RN01: 4; RN02: 2; RN03: 4; RN04: 5), três de ferramentas, dois de contexto, três adversariais, dois de abstenção, um de catálogo, três de escalação e um de política via RAG.
+
+Os **seis casos de regressão** reproduzem problemas encontrados no desenvolvimento: busca sem resultado, retorno ao catálogo, devolução em vários turnos, identidade do assistente, abstenção após mudança de assunto e orçamento. Eles verificam se esses comportamentos continuam corretos após alterações.
+
+Ao todo, são **80 testes de engenharia e 91 casos de avaliação do modelo**, antes de aplicar repetições. Os adversariais já fazem parte dos 36 atendimentos e não devem ser contados novamente. Os grupos medem aspectos diferentes: aprovação de engenharia não demonstra qualidade das respostas do modelo, e as taxas não devem ser somadas em uma nota única.
+
 ### Últimos resultados
 
 Na [rodada completa de 03/11/2026](evals/runs/20261103T144118-144500/results.json):
 
-| Etapa | Aprovados / total |
-| --- | --- |
-| Engenharia | 80 / 80 |
-| Classificação | 22 / 28 |
-| Extração de filtros | 15 / 16 |
-| Atendimento | 33 / 36 |
-| RAG | 8 / 11 |
-| Adversariais (incluídos no atendimento) | 3 / 3 |
+| Grupo | Etapa / subgrupo | Aprovados / total | Aprovação |
+| --- | --- | --- | --- |
+| **Engenharia — 80 testes** | Código, contratos e integrações | **80 / 80** | **100%** |
+| **Modelo — 91 casos** | Classificação de intenção | 22 / 28 | 78,6% |
+| Modelo | Extração de filtros | 15 / 16 | 93,8% |
+| Modelo | Atendimento completo: 30 principais + 6 regressões | **33 / 36** | **91,7%** |
+| Modelo | Recuperação e geração RAG isoladas | 8 / 11 | 72,7% |
+
+**Detalhamento dos 36 atendimentos** — as linhas abaixo já estão incluídas no total de atendimento:
+
+| Conjunto | Subgrupo | Aprovados / total | Aprovação |
+| --- | --- | --- | --- |
+| Principais | RN01 — devolução | 4 / 4 | 100% |
+| Principais | RN02 — reembolso | 1 / 2 | 50% |
+| Principais | RN03 — frete | 4 / 4 | 100% |
+| Principais | RN04 — cancelamento | 5 / 5 | 100% |
+| Principais | Ferramentas e erros de consulta | 3 / 3 | 100% |
+| Principais | Contexto entre turnos | 2 / 2 | 100% |
+| Principais | Adversariais: injection, acesso cruzado e identidade | 3 / 3 | 100% |
+| Principais | Abstenção por ausência de informação | 2 / 2 | 100% |
+| Principais | Catálogo | 1 / 1 | 100% |
+| Principais | Escalação: humano, saúde e reclamação grave | 2 / 3 | 66,7% |
+| Principais | Política de assinatura via RAG no atendimento | 0 / 1 | 0% |
+| **Subtotal principais** | **Casos E01–E30** | **27 / 30** | **90%** |
+| Regressões | Produto, catálogo, devolução, identidade, abstenção e orçamento (um caso cada) | 6 / 6 | 100% |
+| **Total atendimento** | **Principais + regressões** | **33 / 36** | **91,7%** |
+
+O caso de política via RAG acima pertence ao atendimento completo; os onze casos de RAG isolado são outro conjunto. Os três adversariais não são casos extras. Os grupos medem aspectos diferentes e não devem ser somados em uma nota única.
+
 
 A rodada terminou com falhas. Permanecem problemas de classificação, reembolso, encaminhamento humano, assinatura e recuperação de horários. Os adversariais conhecidos passaram; variações independentes ainda precisam ser avaliadas. Veja a análise em [Resumo dos resultados](evals/RESUMO_RESULTADOS.md).
 
@@ -274,6 +312,7 @@ Minha primeira prioridade seria corrigir as falhas restantes de classificação 
 - **Desempenho e custo:** mediria latência e consumo de energia no hardware de destino, separando os fluxos, o carregamento inicial dos modelos e o atendimento simultâneo. Usaria essas medições para avaliar otimizações e estimar o custo operacional por conversa com mais precisão.
 - **Qualidade da recuperação:** experimentaria divisão dos documentos por seção, busca híbrida e reranking, adotando as mudanças que melhorassem a recuperação das evidências e a qualidade das respostas nos testes.
 - **Integrações e fluxos completos:** implementaria autenticação real, integração com pedidos e encaminhamento ao atendimento humano. Também acrescentaria seleção de itens em pedidos com vários produtos e tratamento de múltiplas intenções na mesma mensagem, preservando autorização e regras de negócio em código.
+
 
 
 

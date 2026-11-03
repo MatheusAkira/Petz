@@ -4,14 +4,35 @@ Dados da [última rodada completa, iniciada em 03/11/2026 às 11h41 (Brasília)]
 
 ## Números principais
 
-| Etapa | Aprovados / total | Aprovação |
-| --- | --- | --- |
-| Testes de engenharia | 80 / 80 | 100% |
-| Classificação de intenção | 22 / 28 | 78,6% |
-| Extração de filtros | 15 / 16 | 93,8% |
-| Cenários de atendimento | 33 / 36 | 91,7% |
-| Recuperação e geração RAG | 8 / 11 | 72,7% |
-| Adversariais (parte dos 36 atendimentos) | 3 / 3 | 100% |
+| Grupo | Etapa / subgrupo | Aprovados / total | Aprovação |
+| --- | --- | --- | --- |
+| **Engenharia — 80 testes** | Código, contratos e integrações | **80 / 80** | **100%** |
+| **Modelo — 91 casos** | Classificação de intenção | 22 / 28 | 78,6% |
+| Modelo | Extração de filtros | 15 / 16 | 93,8% |
+| Modelo | Atendimento completo: 30 principais + 6 regressões | **33 / 36** | **91,7%** |
+| Modelo | Recuperação e geração RAG isoladas | 8 / 11 | 72,7% |
+
+**Detalhamento dos 36 atendimentos** — as linhas abaixo já estão incluídas no total de atendimento:
+
+| Conjunto | Subgrupo | Aprovados / total | Aprovação |
+| --- | --- | --- | --- |
+| Principais | RN01 — devolução | 4 / 4 | 100% |
+| Principais | RN02 — reembolso | 1 / 2 | 50% |
+| Principais | RN03 — frete | 4 / 4 | 100% |
+| Principais | RN04 — cancelamento | 5 / 5 | 100% |
+| Principais | Ferramentas e erros de consulta | 3 / 3 | 100% |
+| Principais | Contexto entre turnos | 2 / 2 | 100% |
+| Principais | Adversariais: injection, acesso cruzado e identidade | 3 / 3 | 100% |
+| Principais | Abstenção por ausência de informação | 2 / 2 | 100% |
+| Principais | Catálogo | 1 / 1 | 100% |
+| Principais | Escalação: humano, saúde e reclamação grave | 2 / 3 | 66,7% |
+| Principais | Política de assinatura via RAG no atendimento | 0 / 1 | 0% |
+| **Subtotal principais** | **Casos E01–E30** | **27 / 30** | **90%** |
+| Regressões | Produto, catálogo, devolução, identidade, abstenção e orçamento (um caso cada) | 6 / 6 | 100% |
+| **Total atendimento** | **Principais + regressões** | **33 / 36** | **91,7%** |
+
+O caso de política via RAG acima pertence ao atendimento completo; os onze casos de RAG isolado são outro conjunto. Os três adversariais não são casos extras. Os grupos medem aspectos diferentes e não devem ser somados em uma nota única.
+
 
 O atendimento reúne 30 casos principais e seis regressões. As etapas medem aspectos diferentes e não devem ser somadas em uma taxa única de qualidade.
 
@@ -55,3 +76,4 @@ As notas são consultivas e não alteram os checks determinísticos. O juiz usa 
 6. Medir desempenho com concorrência, modelos frios/quentes e custo operacional no ambiente de destino.
 
 Para reproduzir: `python -m evals.suite`. O modo `--offline` verifica engenharia e kit, mas não executa as avaliações reais do modelo. Esta rodada demonstra avanços nos casos testados e também falhas que ainda precisam de correção.
+
