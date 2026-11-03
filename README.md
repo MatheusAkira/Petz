@@ -186,68 +186,63 @@ O prompt de `catalog.py` descreve os seis campos do schema, seus valores padrão
 
 ## Avaliação e resultados
 
-Com o ambiente instalado, o Ollama aberto e o índice atualizado, execute:
+Resultados da [rodada de 03/11/2026](evals/runs/20261103T144118-144500/results.json), com Qwen 2.5 3B e EmbeddingGemma. **Resultado = aprovados/total.**
 
-```powershell
-# Avaliação completa, incluindo juiz LLM.
-.\.venv\Scripts\python.exe -m evals.suite
+### Engenharia
 
-# Alternativa: mantém os checks determinísticos e pula o juiz.
-.\.venv\Scripts\python.exe -m evals.suite --no-semantic
+Testa o código com respostas controladas. Exemplos: calcular o prazo de devolução, bloquear pedidos de outro cliente e validar o índice de busca.
 
-# Somente testes de engenharia.
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-```
-
-A suíte executa os casos automaticamente. Engenharia usa respostas controladas; as demais etapas avaliam o modelo real. Os datasets estão em `evals/datasets/` e os testes de código em `tests/`.
-
-### Últimos resultados
-
-Na [rodada completa de 03/11/2026](evals/runs/20261103T144118-144500/results.json):
-
-🟢 Todos passaram · 🟡 Há falhas · 🔴 Nenhum passou. **Valores: aprovados/total**, na rodada de 03/11/2026.
-
-| Grupo | Teste e objetivo | Resultado | Aprovação |
+| Tipo | O que avalia | Resultado | Aprovação |
 | --- | --- | ---: | ---: |
-| Engenharia (80) | Código: regras, autorização, catálogo, índice e contratos | 🟢 **80/80** | **100%** |
-| Modelo (91) | Classificação: identificar a intenção da mensagem | 🟡 **22/28** | **78,6%** |
-| Modelo | Extração: obter nome, espécie, categoria, orçamento, alternativas e nova busca | 🟡 **15/16** | **93,8%** |
-| Modelo | Atendimento: validar conversa, ferramentas e resposta final | 🟡 **33/36** | **91,7%** |
-| Modelo | RAG: recuperar políticas e responder com evidências válidas | 🟡 **8/11** | **72,7%** |
+| Testes de engenharia | Regras, autorização, catálogo, índice e contratos | 80/80 | 100% |
 
-**Atendimento — composição dos 36 casos**
+### Modelo
 
-| Subgrupo | O que verifica | Resultado | Aprovação |
+Testa o modelo local em tarefas reais. Cada grupo verifica uma parte diferente do assistente.
+
+| Subgrupo | O que avalia — exemplo | Resultado | Aprovação |
 | --- | --- | ---: | ---: |
-| RN01 | Prazo e elegibilidade de devolução | 🟢 4/4 | 100% |
-| RN02 | Prazo e meio original de reembolso | 🟡 1/2 | 50% |
-| RN03 | Limites de frete grátis | 🟢 4/4 | 100% |
-| RN04 | Cancelamento conforme o estado do pedido | 🟢 5/5 | 100% |
-| Ferramentas | Consulta e erros 404/503 | 🟢 3/3 | 100% |
-| Contexto | Continuidade e mudança de pedido | 🟢 2/2 | 100% |
-| Adversariais | Injection, acesso cruzado e troca de identidade | 🟢 3/3 | 100% |
-| Abstenção | Recusa de resposta sem informação disponível | 🟢 2/2 | 100% |
-| Catálogo | Produtos compatíveis, em estoque e no orçamento | 🟢 1/1 | 100% |
-| Escalação | Atendimento humano, saúde e reclamação grave | 🟡 2/3 | 66,7% |
-| Política via RAG | Resposta sobre assinatura no atendimento | 🔴 0/1 | 0% |
-| **Principais (E01–E30)** | **Subtotal dos itens acima** | 🟡 **27/30** | **90%** |
-| Regressões (R01–R06) | Produto, catálogo, devolução, identidade, abstenção e orçamento: um caso cada | 🟢 **6/6** | **100%** |
-| **Total de atendimento** | **30 principais + 6 regressões** | 🟡 **33/36** | **91,7%** |
+| Classificação | Identificar a intenção: “quero cancelar” → cancelamento | 22/28 | 78,6% |
+| Extração | Obter filtros: “ração para gato até R$ 100” → espécie e orçamento | 15/16 | 93,8% |
+| Atendimento | Conduzir a conversa, consultar ferramentas e responder corretamente | 33/36 | 91,7% |
+| RAG | Recuperar a política correta e responder com fatos e citações válidos | 8/11 | 72,7% |
 
-**Contagem:** 80 testes de engenharia + 91 casos do modelo (28 + 16 + 36 + 11). Adversariais já estão nos 36 atendimentos; os onze casos RAG são uma avaliação separada. As taxas medem aspectos diferentes e não formam uma nota única.
+#### Subgrupos de atendimento
 
+Avaliam conversas completas, incluindo regras de negócio, contexto e tratamento de erros.
 
-A rodada terminou com falhas. Permanecem problemas de classificação, reembolso, encaminhamento humano, assinatura e recuperação de horários. Os adversariais conhecidos passaram; variações independentes ainda precisam ser avaliadas. Veja a análise em [Resumo dos resultados](evals/RESUMO_RESULTADOS.md).
+| Subgrupo | O que avalia — exemplo | Resultado | Aprovação |
+| --- | --- | ---: | ---: |
+| RN01 — Devolução | Verificar se o pedido está no prazo de devolução | 4/4 | 100% |
+| RN02 — Reembolso | Informar prazo e meio original de pagamento | 1/2 | 50% |
+| RN03 — Frete | Aplicar o limite de frete grátis | 4/4 | 100% |
+| RN04 — Cancelamento | Permitir ou recusar conforme o estado do pedido | 5/5 | 100% |
+| Ferramentas | Consultar pedidos e tratar erros 404/503 | 3/3 | 100% |
+| Contexto | Retomar uma consulta após receber o número do pedido | 2/2 | 100% |
+| Adversariais | Bloquear acesso a outro cliente e tentativas de alterar a identidade | 3/3 | 100% |
+| Abstenção | Recusar uma resposta quando falta informação | 2/2 | 100% |
+| Catálogo | Recomendar produtos em estoque e dentro do orçamento | 1/1 | 100% |
+| Escalação | Encaminhar pedidos de atendimento humano e situações sensíveis | 2/3 | 66,7% |
+| Política via RAG | Responder sobre assinatura usando a política disponível | 0/1 | 0% |
+| **Subtotal principal** | **Cenários E01–E30** | **27/30** | **90%** |
+| Regressões | Revalidar produto, catálogo, devolução, identidade, abstenção e orçamento | 6/6 | 100% |
+| **Total** | **Principais + regressões** | **33/36** | **91,7%** |
 
-### Relatórios e avaliação semântica
+### Avaliação semântica do RAG
 
-Cada execução salva três relatórios Markdown (classificação, extração e RAG) e um `results.json` em `evals/runs/<execução>/`, preservando as rodadas anteriores. O JSON inclui também engenharia e atendimento. O terminal mostra a pasta; no VS Code, `Ctrl+Shift+V` abre a prévia do Markdown.
+Um juiz LLM avalia a qualidade das respostas com DeepEval. As notas vão de 0 a 1 e são consultivas; não alteram os resultados acima.
 
-Os checks verificam rotas, regras, filtros, fatos esperados e citações. No RAG, também são medidas recuperação e ordenação das evidências. DeepEval 4.3.2 acrescenta fidelidade e relevância com métricas nativas, e correção, completude e utilidade com G-Eval. As notas de 0 a 1 são consultivas e não alteram os checks; erros de execução do juiz são registrados como falhas. Respostas sem saída validada ficam sem julgamento, e fidelidade sem contexto factual é não aplicável.
+| Dimensão | O que avalia | Média | Casos avaliados |
+| --- | --- | ---: | ---: |
+| Fidelidade | Se os fatos da resposta têm apoio no contexto recuperado | 0,5587 | 7 |
+| Correção | Se a resposta está correta em relação à referência | 0,4400 | 10 |
+| Completude | Se cobre as informações esperadas | 0,4800 | 10 |
+| Relevância | Se responde ao que foi perguntado | 0,2833 | 10 |
+| Utilidade | Se oferece orientação útil ao cliente | 0,3500 | 10 |
 
-Por padrão, o juiz usa o mesmo modelo do gerador: a avaliação não é independente e ainda não tem calibração humana. `JUDGE_MODEL` seleciona outro modelo local instalado; `JUDGE_TIMEOUT` limita cada chamada (padrão: 180 s). As métricas rodam localmente, sem upload ao Confident AI. Checks textuais e juízes podem errar e não garantem generalização.
+São **80 testes de engenharia e 91 casos do modelo**. Os subgrupos de atendimento já estão incluídos nos 36 cenários; as notas semânticas avaliam as mesmas respostas RAG. O juiz usa o mesmo modelo do gerador, sem calibração humana, e há inconsistências nos julgamentos. Os resultados descrevem esta rodada e não formam uma nota única.
 
-Código de saída **0** indica ausência de falhas automáticas nas etapas executadas; **1**, reprovação ou erro; **130**, interrupção. Consulte `$LASTEXITCODE` após o comando. Opções como `--repeats`, `--judge-saved` e `--output`, além do detalhamento das métricas, estão no [guia de execução](evals/docs/COMO_EXECUTAR.md).
+Para executar: `python -m evals.suite`. Consulte o [resumo completo](evals/RESUMO_RESULTADOS.md) e o [guia de execução](evals/docs/COMO_EXECUTAR.md) para falhas, métricas e opções.
 
 ## Decisões técnicas e desempenho
 
