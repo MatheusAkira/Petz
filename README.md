@@ -179,6 +179,45 @@ O prompt de `catalog.py` descreve os seis campos do schema, seus valores padrão
 
 ## Testar
 
+### Como rodar os testes
+
+Abra um terminal PowerShell na raiz do projeto. Se ainda não preparou o ambiente, execute:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+
+
+
+
+**2. Avaliação completa com o modelo:** mantenha o Ollama aberto. Na primeira execução, baixe os modelos e crie o índice das políticas:
+
+```powershell
+ollama pull qwen2.5:3b
+ollama pull embeddinggemma
+.\.venv\Scripts\python.exe -m petz.index
+```
+
+Depois, rode a suíte. Ela envia as perguntas automaticamente; não é necessário conversar pelo terminal:
+
+```powershell
+# Engenharia, classificação, extração, atendimento e RAG, incluindo juiz LLM.
+.\.venv\Scripts\python.exe -m evals.suite
+
+# Alternativa: executa a avaliação sem o juiz LLM, mantendo os checks determinísticos.
+.\.venv\Scripts\python.exe -m evals.suite --no-semantic
+```
+
+A execução completa pode levar vários minutos, principalmente com o juiz LLM. Se as políticas mudarem, rode `petz.index` novamente antes da avaliação. Os modelos precisam ser baixados apenas quando ainda não estiverem instalados.
+
+**3. Consulte os resultados:** o terminal informa a pasta criada em `evals/runs/<execução>/`. Abra os três relatórios Markdown de classificação, extração e RAG; o `results.json` contém também os resultados de engenharia e dos cenários completos de atendimento. Cada rodada preserva as anteriores. No VS Code, use `Ctrl+Shift+V` para visualizar um Markdown formatado.
+
+Código de saída **0** indica ausência de falhas automáticas nas etapas executadas; **1** indica reprovação ou erro, e **130** indica interrupção. Para consultar o código no PowerShell, execute `$LASTEXITCODE` logo após o comando. Notas semânticas são consultivas: uma execução sem falhas não garante qualidade em qualquer conversa. Um resumo da rodada já registrada está em [Resumo dos resultados](evals/RESUMO_RESULTADOS.md).
+
+### Como funciona a avaliação semântica
+
 A avaliação semântica usa **DeepEval 4.3.2** com Ollama local na etapa de **geração RAG**. Fidelidade e relevância usam `FaithfulnessMetric` e `AnswerRelevancyMetric`; correção factual, completude e utilidade usam `GEval` com etapas próprias. Um `LLMTestCase` separa pergunta, resposta, contexto recuperado e referência. As notas nativas de 0–1 e justificativas são registradas sem renormalização. Erros são registrados por métrica e as demais continuam. Casos parciais preservam notas válidas, sem transformar falhas em zero. Respostas sem saída validada ficam sem julgamento. A verificação literal das citações da resposta continua no pipeline RAG; o DeepEval não fornece o contrato antigo de citações literais do juiz.
 
 O relatório inclui um mapa de todas as métricas com **etapa, método, critério e limitação**, notas por caso e médias com o número de casos aplicáveis. O juiz não altera os resultados determinísticos nem transforma uma falha do assistente em aprovação. Não usamos a marcação `supported` como prova de fidelidade.

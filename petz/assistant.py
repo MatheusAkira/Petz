@@ -51,8 +51,12 @@ class Assistant:
             reply = Reply('Envie uma mensagem de até 4000 caracteres.', 'limite')
         else:
             try:
-                from .llm import plan
+                from .llm import plan, UnsafeToolArguments
                 intent = plan(message, self.context)
+            except UnsafeToolArguments:
+                planner = 'rejected'
+                model_error = 'unsafe_tool_arguments'
+                reply = self._respond(message,'seguranca')
             except (OSError, ValueError, KeyError, TypeError) as error:
                 planner = 'error'
                 if isinstance(error,HTTPError):
