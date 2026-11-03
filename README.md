@@ -261,7 +261,7 @@ Traces em `logs/traces.jsonl` incluem rota, fontes, código da ferramenta, erro 
 
 Não há cobrança de API no Ollama local; há consumo de CPU/GPU, RAM e energia. Uma dúvida de política faz uma ou duas chamadas de classificação, um embedding da pergunta e uma geração. A indexação gera embeddings dos documentos uma vez por versão. Carregar os dois modelos em máquina com pouca RAM pode aumentar bastante a latência. Os relatórios reais registram o tempo total por cenário; não são benchmark de produção.
 
-O kit, os prompts de geração de dados e as regras RN01–RN04 estão documentados em `kit/`. Tudo é fictício e foi criado com auxílio do Codex. Não há transações reais, login de produção ou abertura de chamado. Alterações nas regras exigem atualizar políticas e dados, reindexar e acrescentar casos de avaliação.
+O kit, os prompts de geração de dados e as regras RN01–RN04 estão documentados em `kit/`. 
 
 ## Próximos passos
 
